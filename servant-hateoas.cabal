@@ -18,10 +18,14 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules:  MyLib
+    exposed-modules:  Servant.Hateoas
 
     build-depends:    base ^>=4.20.0.0
                     , servant
+                    , servant-server
+                    , http-media
+                    , aeson
+                    , text
     hs-source-dirs:   src
     default-language: GHC2024
 
