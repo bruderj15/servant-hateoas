@@ -19,7 +19,7 @@ instance ToResource User where
     where
       userLinks = pure ("address", "http://host:port/addresses/" <> show addrId)
 
-type UserApi = "user" :> Capture "id" Int :> Get '[HALJSON] (Resource HALJSON User)
+type UserApi = "user" :> Capture "id" Int :> Get '[HALJSON] (Resource User)
 
 userServer :: Server UserApi
 userServer = \i -> return $ toResource $ User i 42

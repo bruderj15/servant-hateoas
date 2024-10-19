@@ -10,32 +10,22 @@ import Data.Aeson
 import GHC.Generics
 import GHC.Exts
 
-data Resource t a = Resource
+-- Later add actions and more props for other MimeTypes like CollectionJSON, Hydra, ...
+data Resource a = Resource
   { resource :: a
   , links    :: [(String, String)]
   } deriving (Generic)
 
-instance ToJSON a => ToJSON (Resource HALJSON a) where
-  toJSON (Resource res lks) = case toJSON res of
+instance ToJSON a => MimeRender HALJSON (Resource a) where
+  mimeRender _ (Resource res lks) = encode $ case toJSON res of
     Object kvm -> Object $ ["_links" .= lks'] <> kvm
     v -> v
     where
       lks' = object [fromString rel .= object ["href" .= href] | (rel, href) <- lks]
 
--- TODO:
--- instance ToJSON a => ToJSON (Resource CollectionJSON a) where
--- instance FromJSON a => FromJSON (Resource HALJSON a) where
--- instance FromJSON a => FromJSON (Resource CollectionJSON a) where
-
-instance (ToJSON (Resource t a), Accept t) => MimeRender t (Resource t a) where
-  mimeRender _ = encode
-
-instance (FromJSON (Resource t a), Accept t) => MimeUnrender t (Resource t a) where
-  mimeUnrender _ = eitherDecode
-
 class ToResource a where
-  toResource :: a -> Resource t a
-  default toResource :: (Generic a, GToResource (Rep a)) => a -> Resource t a
+  toResource :: a -> Resource a
+  default toResource :: (Generic a, GToResource (Rep a)) => a -> Resource a
   toResource x = Resource x (gToResource (from x))
 
 class GToResource f where
