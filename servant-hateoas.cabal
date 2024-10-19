@@ -27,7 +27,7 @@ library
 
     other-modules:    Servant.Hateoas.Example
 
-    build-depends:    base ^>=4.20.0.0
+    build-depends:    base                          >= 4.17.2 && < 5
                     , servant
                     , servant-server
                     , http-media

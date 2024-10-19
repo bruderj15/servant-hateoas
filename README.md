@@ -1,3 +1,6 @@
+![Static Badge](https://img.shields.io/badge/Lang-GHC2021-blue)
+[![Haskell-CI](https://github.com/bruderj15/servant-hateoas/actions/workflows/haskell-ci.yml/badge.svg)](https://github.com/bruderj15/servant-hateoas/actions/workflows/haskell-ci.yml)
+
 # servant-hateoas
 
 This is not related to the official `servant` maintainers.
