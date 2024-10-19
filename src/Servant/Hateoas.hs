@@ -14,12 +14,12 @@ data User = User
 
 instance ToJSON User
 
-instance ToResource User where
-  toResource u@(User _ addrId) = Resource u userLinks
+instance ToResource User api where
+  toResource _ u@(User _ addrId) = Resource u userLinks
     where
       userLinks = pure ("address", "http://host:port/addresses/" <> show addrId)
 
 type UserApi = "user" :> Capture "id" Int :> Get '[HALJSON] (Resource User)
 
 userServer :: Server UserApi
-userServer = \i -> return $ toResource $ User i 42
+userServer = \i -> return $ toResource (Proxy @UserApi) $ User i 42

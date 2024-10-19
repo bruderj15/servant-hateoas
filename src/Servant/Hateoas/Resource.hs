@@ -7,6 +7,7 @@ module Servant.Hateoas.Resource where
 import Servant.Hateoas.ContentType
 import Servant.API.ContentTypes
 import Data.Aeson
+import Data.Proxy
 import GHC.Generics
 import GHC.Exts
 
@@ -23,10 +24,10 @@ instance ToJSON a => MimeRender HALJSON (Resource a) where
     where
       lks' = object [fromString rel .= object ["href" .= href] | (rel, href) <- lks]
 
-class ToResource a where
-  toResource :: a -> Resource a
-  default toResource :: (Generic a, GToResource (Rep a)) => a -> Resource a
-  toResource x = Resource x (gToResource (from x))
+class ToResource a api where
+  toResource :: Proxy api -> a -> Resource a
+  default toResource :: (Generic a, GToResource (Rep a) api) => Proxy api -> a -> Resource a
+  toResource api x = Resource x (gToResource api (from x))
 
-class GToResource f where
-  gToResource :: f p -> [(String, String)]
+class GToResource f api where
+  gToResource :: Proxy api -> f p -> [(String, String)]
