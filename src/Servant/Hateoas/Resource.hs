@@ -24,10 +24,10 @@ instance ToJSON a => MimeRender HALJSON (Resource a) where
     where
       lks' = object [fromString rel .= object ["href" .= href] | (rel, href) <- lks]
 
-class ToResource a api where
+class ToResource api a where
   toResource :: Proxy api -> a -> Resource a
-  default toResource :: (Generic a, GToResource (Rep a) api) => Proxy api -> a -> Resource a
+  default toResource :: (Generic a, GToResource api (Rep a)) => Proxy api -> a -> Resource a
   toResource api x = Resource x (gToResource api (from x))
 
-class GToResource f api where
+class GToResource api f where
   gToResource :: Proxy api -> f p -> [(String, String)]

@@ -7,8 +7,8 @@ license:            BSD-3-Clause
 license-file:       LICENSE
 author:             Julian Bruder
 maintainer:         julian.bruder@outlook.com
--- copyright:
-category:           Web
+copyright:          © 2024 Julian Bruder
+category:           Servant, Web, REST, HATEOAS
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 -- extra-source-files:

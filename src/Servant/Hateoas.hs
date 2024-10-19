@@ -6,7 +6,7 @@ import Servant
 import Data.Aeson
 import GHC.Generics
 
--------------- Example --------------
+-------------- Example for dev --------------
 data User = User
   { userId :: Int
   , addressId :: Int
@@ -14,7 +14,7 @@ data User = User
 
 instance ToJSON User
 
-instance ToResource User api where
+instance ToResource api User where
   toResource _ u@(User _ addrId) = Resource u userLinks
     where
       userLinks = pure ("address", "http://host:port/addresses/" <> show addrId)
