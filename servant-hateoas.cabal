@@ -46,5 +46,5 @@ test-suite servant-hateoas-test
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
-        base ^>=4.20.0.0,
-        servant-hateoas
+                      base >= 4.17.2 && < 5
+                    , servant-hateoas
