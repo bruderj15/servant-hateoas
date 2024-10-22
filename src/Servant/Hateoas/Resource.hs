@@ -44,20 +44,21 @@ instance GToResource api V1 where
 instance (GToResource api f, GToResource api g) => GToResource api (f :*: g) where
   gToResource api (a :*: b) =  gToResource api a <> gToResource api b
 
-instance {-# OVERLAPPING #-} (GToResource api f, Selector c) => GToResource api (M1 S c f) where
-  gToResource api m1@(M1 x) = (\(_, link) -> (selName m1, link)) <$> (gToResource api x)
-
 instance GToResource api f => GToResource api (M1 i c f) where
   gToResource api (M1 x) = gToResource api x
 
-instance {-# OVERLAPPING #-} (HasResource a, HasLink (GetOneApi a), IsElem (GetOneApi a) api, MkLink (GetOneApi a) Link ~ (Id a -> Link))
-  => GToResource api (K1 R a) where
-  gToResource api (K1 x) =
-    let link = safeLink api (Proxy @(GetOneApi a))
-     in pure (mempty, link $ getId x)
+instance {-# OVERLAPPING #-} (GToResource api f, Selector c) => GToResource api (M1 S c f) where
+  gToResource api m1@(M1 x) = (\(_, link) -> (selName m1, link)) <$> (gToResource api x)
 
--- No links for arbitrary types (mainly base types like Int, ...)
-instance GToResource api (K1 i a) where
+instance (HasResource a, HasLink (GetOneApi a), IsElem (GetOneApi a) api, MkLink (GetOneApi a) Link ~ (Id a -> Link))
+  => GToResource api (K1 i a) where
+  gToResource api (K1 x) = pure (mempty, link $ getId x)
+    where link = safeLink api $ Proxy @(GetOneApi a)
+
+instance {-# OVERLAPPING #-} GToResource api (K1 R Int) where
+  gToResource _ _ = mempty
+
+instance {-# OVERLAPPING #-} GToResource api (K1 R String) where
   gToResource _ _ = mempty
 
 class HasResource a where

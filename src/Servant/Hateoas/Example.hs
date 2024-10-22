@@ -7,19 +7,23 @@ import Data.Aeson
 import GHC.Generics
 
 -------------- Example for dev --------------
-data User = User { address :: Address } deriving (Generic, Show, Eq, Ord)
+data User = User { userId :: Int, address :: Address } deriving (Generic, Show, Eq, Ord)
 instance ToJSON User
 
 data Address = Address { addressId :: Int, street :: String, number :: Int} deriving (Generic, Show, Eq, Ord)
 instance ToJSON Address
-instance ToResource api Address where
 
 instance HasResource Address where
   type GetOneApi Address = AddressApi
   type Id Address = Int
   getId = addressId
+instance ToResource CompleteApi Address where
 
-instance ToResource api User where
+instance HasResource User where
+  type GetOneApi User = UserApi
+  type Id User = Int
+  getId = userId
+instance ToResource CompleteApi User where
 
 type CompleteApi = AddressApi :<|> UserApi
 type AddressApi = "address" :> Capture "id" Int :> Get '[HALJSON] (Resource Address)
