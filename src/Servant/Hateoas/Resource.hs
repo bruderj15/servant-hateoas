@@ -15,7 +15,6 @@ import Data.Kind
 import GHC.Generics
 import GHC.Exts
 
--- Later add actions and more props for other MimeTypes like CollectionJSON, Hydra, ...
 data Resource a = Resource
   { resource :: a
   , links    :: [(String, Link)]
@@ -32,6 +31,13 @@ class HasResource a where
   type GetOneApi a :: Type
   type Id a :: Type
   getId :: a -> Id a
+
+type family Holds (c :: Constraint) :: Bool where
+  Holds () = True
+  Holds _  = False
+
+type family HasResourceInstance a where
+  HasResourceInstance a = Holds (HasResource a)
 
 class ToResource api a where
   toResource :: Proxy api -> a -> Resource a
@@ -70,22 +76,16 @@ instance {-# OVERLAPPING #-} (GToResource api f, Selector c) => GToResource api 
   gToResource api m1@(M1 x) = (\(_, link) -> (selName m1, link)) <$> (gToResource api x)
 
 -- Dear GHC, why is the 'f ~ K1 i a' trick needed here?
-instance {-# OVERLAPPABLE #-} (GToResource' (IsBaseType a) api f, f ~ K1 i a) => GToResource api f where
-  gToResource = gToResourceHelper @(IsBaseType a)
+instance {-# OVERLAPPABLE #-} (GToResource' (HasResourceInstance a) api f, f ~ K1 i a) => GToResource api f where
+  gToResource = gToResourceHelper @(HasResourceInstance a)
 
--- Do more clever...
-type family IsBaseType a where
-  IsBaseType Int    = 'True
-  IsBaseType String = 'True
-  IsBaseType _      = 'False
-
-class GToResource' isBaseType api f where
+class GToResource' hasResource api f where
   gToResourceHelper :: Proxy api -> f p -> [(String, Link)]
 
 instance (HasResource a, HasLink (GetOneApi a), IsElem (GetOneApi a) api, MkLink (GetOneApi a) Link ~ (Id a -> Link))
-  => GToResource' 'False api (K1 i a) where
+  => GToResource' 'True api (K1 i a) where
   gToResourceHelper api (K1 x) = pure (mempty, link $ getId x)
     where link = safeLink api $ Proxy @(GetOneApi a)
 
-instance GToResource' 'True api (K1 i a) where
+instance GToResource' 'False api (K1 i a) where
   gToResourceHelper _ _ = mempty
