@@ -35,8 +35,21 @@ class HasResource a where
 
 class ToResource api a where
   toResource :: Proxy api -> a -> Resource a
-  default toResource :: (Generic a, GToResource api (Rep a)) => Proxy api -> a -> Resource a
-  toResource api x = Resource x (gToResource api (from x))
+  default toResource :: (Generic a, GToResource api (Rep a), HasResource a, HasLink (GetOneApi a)
+    , IsElem (GetOneApi a) api, MkLink (GetOneApi a) Link ~ (Id a -> Link))
+    => Proxy api
+    -> a
+    -> Resource a
+  toResource = defaultToResource
+
+defaultToResource :: forall api a. (Generic a, GToResource api (Rep a), HasResource a, HasLink (GetOneApi a)
+  , IsElem (GetOneApi a) api, MkLink (GetOneApi a) Link ~ (Id a -> Link))
+  => Proxy api
+  -> a
+  -> Resource a
+defaultToResource api x = Resource x $ ("self", self $ getId x):(gToResource api (from x))
+  where
+    self = safeLink api $ Proxy @(GetOneApi a)
 
 class GToResource api f where
   gToResource :: Proxy api -> f p -> [(String, Link)]
