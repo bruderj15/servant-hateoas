@@ -18,12 +18,12 @@ data Address = Address { addressId :: Int, street :: String, number :: Int}
   deriving stock (Generic, Show, Eq, Ord)
   deriving anyclass (ToJSON, ToResource CompleteApi)
 
-instance HasResource Address where
+instance HasRestyApi Address where
   type GetOneApi Address = AddressGetOne
   type Id Address = Int
   getId = addressId
 
-instance HasResource User where
+instance HasRestyApi User where
   type GetOneApi User = UserGetOne
   type Id User = Int
   getId = userId

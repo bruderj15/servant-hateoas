@@ -1,6 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Servant.Hateoas.ContentType where
+module Servant.Hateoas.ContentType
+( HALJSON
+, CollectionJSON
+, HALFormsJSON
+, UberJSON
+, SirenJSON
+)
+where
 
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
