@@ -12,21 +12,11 @@ import GHC.Generics
 -------------- Example for dev --------------
 data User = User { userId :: Int, address :: Address }
   deriving stock (Generic, Show, Eq, Ord)
-  deriving anyclass (ToJSON, ToResource CompleteApi)
+  deriving anyclass ToJSON
 
 data Address = Address { addressId :: Int, street :: String, number :: Int}
   deriving stock (Generic, Show, Eq, Ord)
-  deriving anyclass (ToJSON, ToResource CompleteApi)
-
-instance HasRestyApi Address where
-  type GetOneApi Address = AddressGetOne
-  type Id Address = Int
-  getId = addressId
-
-instance HasRestyApi User where
-  type GetOneApi User = UserGetOne
-  type Id User = Int
-  getId = userId
+  deriving anyclass ToJSON
 
 type CompleteApi = AddressApi :<|> UserApi
 
