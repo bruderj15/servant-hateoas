@@ -11,7 +11,7 @@ Currently in infant state.
 Final goal is something similar to what has been proposed [here](https://www.servant.dev/extending.html#other-directions).
 
 ## What can we do already?
-Define an instance for class `ToResource api a` where `a` is the datatype you want to have a resty Api for and
+Define an instance for class `HasResource api a` where `a` is the datatype you want to have a resty Api for and
 `api` is the type of your Servant-Api within which the resty representation of your datatype `a` lives.
 
 ## Example
@@ -60,7 +60,7 @@ instance HasResource CompleteApi User where
 ```
 
 ## Goals
-- [ ] Generically deriving `ToResource api` where possible
+- [ ] Generically deriving `HasResource api` where possible
 - [ ] Type-level rewriting of APIs like `CompleteAPI` to make API HATEOAS-compliant
 
 ## Media-Types
