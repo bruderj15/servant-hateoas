@@ -22,8 +22,10 @@ common warnings
 library
     import:           warnings
     exposed-modules:  Servant.Hateoas
+                    , Servant.Hateoas.Some
                     , Servant.Hateoas.Resource
                     , Servant.Hateoas.ContentType
+                    , Servant.Hateoas.ContentType.HALJSON
 
     other-modules:    Servant.Hateoas.Example
 

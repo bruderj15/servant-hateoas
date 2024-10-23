@@ -1,7 +1,5 @@
 module Servant.Hateoas
-( module Servant.Hateoas.Resource
-, module Servant.Hateoas.ContentType
+( module Servant.Hateoas.ContentType.HALJSON
 ) where
 
-import Servant.Hateoas.Resource
-import Servant.Hateoas.ContentType
+import Servant.Hateoas.ContentType.HALJSON
