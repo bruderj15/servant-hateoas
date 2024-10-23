@@ -25,7 +25,7 @@ library
                     , Servant.Hateoas.Some
                     , Servant.Hateoas.Resource
                     , Servant.Hateoas.ContentType
-                    , Servant.Hateoas.ContentType.HALJSON
+                    , Servant.Hateoas.ContentType.HAL
 
     other-modules:    Servant.Hateoas.Example
 

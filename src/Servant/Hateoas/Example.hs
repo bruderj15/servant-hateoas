@@ -3,8 +3,6 @@
 
 module Servant.Hateoas.Example where
 
-import Servant.Hateoas.Resource
-import Servant.Hateoas.Some
 import Servant.Hateoas
 import Servant
 import Data.Aeson
@@ -22,12 +20,12 @@ data Address = Address { addrId :: Int, street :: String, number :: Int}
 type CompleteApi = AddressApi :<|> UserApi
 
 type AddressApi = AddressGetOne
-type AddressGetOne = "address" :> Capture "id" Int :> Get '[HALJSON] (HALResource Address)
+type AddressGetOne = "address" :> Capture "id" Int :> Get '[HAL JSON] (HALResource Address)
 
 type UserApi = UserGetOne
-type UserGetOne = "user" :> Capture "id" Int :> Get '[HALJSON] (HALResource User)
+type UserGetOne = "user" :> Capture "id" Int :> Get '[HAL JSON] (HALResource User)
 
-instance ToResource HALJSON CompleteApi User where
+instance ToResource (HAL JSON) CompleteApi User where
   toResource _ api u@(User uId aId) = HALResource u
     [ ("self", mkSelf uId)
     , ("address", mkAddr (aId))

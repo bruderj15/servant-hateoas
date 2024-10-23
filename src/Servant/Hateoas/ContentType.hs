@@ -8,13 +8,8 @@ module Servant.Hateoas.ContentType
 )
 where
 
-import Servant.Hateoas.Resource
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
-import Servant.Links
-import Data.Aeson
-import Data.Aeson.KeyMap (singleton)
-import GHC.Exts
 
 data CollectionJSON
 data HALFormsJSON

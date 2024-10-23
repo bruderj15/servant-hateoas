@@ -1,17 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Servant.Hateoas.ContentType.HALJSON where
+module Servant.Hateoas.ContentType.HAL where
 
 import Servant.Hateoas.Resource
 import Servant.Hateoas.Some
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
 import Servant.Links
+import Data.Kind
 import Data.Aeson
 import Data.Aeson.KeyMap (singleton)
 import GHC.Exts
 
-data HALJSON
+data HAL (a :: Type)
 
 data HALResource a = HALResource
   { resource :: a
@@ -19,10 +20,10 @@ data HALResource a = HALResource
   , embedded :: [(String, SomeToJSON HALResource)]
   }
 
-instance HasResource HALJSON a where
-  type Resource HALJSON = HALResource
+instance HasResource (HAL JSON) where
+  type Resource (HAL JSON) = HALResource
 
-instance Accept HALJSON where
+instance Accept (HAL JSON) where
   contentType _ = "application" M.// "hal+json"
 
 instance ToJSON a => ToJSON (HALResource a) where
@@ -33,5 +34,5 @@ instance ToJSON a => ToJSON (HALResource a) where
       ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
       es' = object [fromString name .= toJSON e | (name, (SomeToJSON e)) <- es]
 
-instance ToJSON (HALResource a) => MimeRender HALJSON (HALResource a) where
+instance ToJSON (HALResource a) => MimeRender (HAL JSON) (HALResource a) where
   mimeRender _ = encode
