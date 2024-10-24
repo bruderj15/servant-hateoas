@@ -31,7 +31,6 @@ library
 
     build-depends:       base                          >= 4.17.2 && < 5
                        , aeson                         >= 2.2.3  && < 2.3
-                       , text                          >= 2.1.1  && < 2.2
                        , http-media                    >= 0.8.1  && < 0.9
                        , servant                       >= 0.20.2 && < 0.21
                        , servant-server                >= 0.20.2 && < 0.21
