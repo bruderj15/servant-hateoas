@@ -26,7 +26,7 @@ type UserApi = UserGetOne :<|> UserGetAll
 type UserGetOne = "user" :> Capture "id" Int :> Get '[HAL JSON] (HALResource User)
 type UserGetAll = "user" :> Get '[HAL JSON] (HALResource [User])
 
-instance Resty User where
+instance Related User where
   type IdField User = "usrId"
   type GetOneApi User = UserGetOne
   type CollectionName User = "users"
