@@ -13,6 +13,7 @@ import Servant.Hateoas.Some
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
 import Servant.Links
+import qualified Data.Foldable as Foldable
 import Data.Kind
 import Data.Proxy
 import Data.Aeson
@@ -53,7 +54,7 @@ instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a
     where
       es = object $
         [  fromString (symbolVal (Proxy @(CollectionName a)))
-        .= (Array $ foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
+        .= (Array $ Foldable.foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
         ]
 
 instance {-# OVERLAPPABLE #-}
