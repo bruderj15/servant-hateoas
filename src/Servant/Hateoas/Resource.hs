@@ -13,17 +13,16 @@ class HasResource ct where
 class HasResource ct => ToResource ct api a where
   toResource :: Proxy ct -> Proxy api -> a -> Resource ct a
 
--- | (relationName, fieldName, Api for fields value)
-type Relation = (Symbol, Symbol, Type) :: Type
+data HRel = HRel { relName :: Symbol, fieldName :: Symbol, endpoint :: Type }
 
 class Related a where
   type IdField a :: Symbol
   type GetOneApi a :: Type
   type CollectionName a :: Symbol
   type CollectionName a = "items"
-  type Relations a :: [Relation]
+  type Relations a :: [HRel]
 
-type BuildLinks :: Type -> [Relation] -> Type -> Constraint
+type BuildLinks :: Type -> [HRel] -> Type -> Constraint
 class BuildLinks api rs a where
   buildLinks :: Proxy rs -> Proxy api -> a -> [(String, Link)]
 
@@ -37,7 +36,7 @@ instance
   , IsElem endpoint api
   , MkLink endpoint Link ~ (id -> Link)
   , BuildLinks api rs a
-  ) => BuildLinks api ('(relName, fieldName, endpoint) ': rs) a where
+  ) => BuildLinks api (('HRel relName fieldName endpoint) ': rs) a where
   buildLinks _ api x = l : buildLinks (Proxy @rs) api x
     where
       mkLink = safeLink api (Proxy @endpoint)
@@ -46,8 +45,11 @@ instance
 relatedLinks :: forall api a. (Related a, BuildLinks api (Relations a) a) => Proxy api -> a -> [(String, Link)]
 relatedLinks = buildLinks (Proxy @(Relations a))
 
-selfLink :: forall api a id. (Related a, HasField (IdField a) a id, IsElem (GetOneApi a) api, HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link))
-  => Proxy api -> a -> (String, Link)
+selfLink :: forall api a id.
+  ( Related a, HasField (IdField a) a id
+  , IsElem (GetOneApi a) api, HasLink (GetOneApi a)
+  , MkLink (GetOneApi a) Link ~ (id -> Link)
+  ) => Proxy api -> a -> (String, Link)
 selfLink api x = ("self", mkSelf $ getField @(IdField a) x)
   where
     mkSelf = safeLink api (Proxy @(GetOneApi a))
