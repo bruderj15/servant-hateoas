@@ -8,7 +8,6 @@ import Servant
 import Data.Aeson
 import GHC.Generics
 
--------------- Example for dev --------------
 data User = User { usrId :: Int, addressId :: Int, income :: Double }
   deriving stock (Generic, Show, Eq, Ord)
   deriving anyclass ToJSON
@@ -27,7 +26,7 @@ type UserGetOne = "user" :> Capture "id" Int :> Get '[HAL JSON] (HALResource Use
 type UserGetAll = "user" :> Get '[HAL JSON] (HALResource [User])
 
 instance Related User where
-  type IdField User = "usrId"
+  type IdSelName User = "usrId"
   type GetOneApi User = UserGetOne
   type CollectionName User = "users"
   type Relations User =

@@ -2,7 +2,11 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DefaultSignatures #-}
 
-module Servant.Hateoas.ContentType.HAL where
+module Servant.Hateoas.ContentType.HAL
+( HAL
+, HALResource(..)
+)
+where
 
 import Servant.Hateoas.Resource
 import Servant.Hateoas.Some
@@ -18,8 +22,12 @@ import GHC.TypeLits
 import GHC.Generics
 import GHC.Records
 
-data HAL (a :: Type)
+-- | Data-Kind representing Content-Types with Hypertext Application Language (HAL).
+--
+--   Type parameter @t@ is the mime type suffix in @application/hal+t@.
+data HAL (t :: Type)
 
+-- | Resource wrapper for HAL.
 data HALResource a = HALResource
   { resource :: a
   , links    :: [(String, Link)]
@@ -49,7 +57,7 @@ instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a
         ]
 
 instance {-# OVERLAPPABLE #-}
-  ( Related a, HasField (IdField a) a id, IsElem (GetOneApi a) api
+  ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
   , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
   , BuildRels api (Relations a) a
   , HasResource (HAL t)
