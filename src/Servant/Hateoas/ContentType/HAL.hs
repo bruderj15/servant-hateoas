@@ -16,6 +16,7 @@ import Data.Aeson.KeyMap (singleton)
 import GHC.Exts
 import GHC.TypeLits
 import GHC.Generics
+import GHC.Records
 
 data HAL (a :: Type)
 
@@ -25,8 +26,8 @@ data HALResource a = HALResource
   , embedded :: [(String, SomeToJSON HALResource)]
   } deriving (Generic)
 
-instance HasResource (HAL JSON) where
-  type Resource (HAL JSON) = HALResource
+instance HasResource (HAL t) where
+  type Resource (HAL t) = HALResource
 
 instance Accept (HAL JSON) where
   contentType _ = "application" M.// "hal+json"
@@ -46,3 +47,11 @@ instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a
         [  fromString (symbolVal (Proxy @(CollectionName a)))
         .= (Array $ foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
         ]
+
+instance {-# OVERLAPPABLE #-}
+  ( Related a, HasField (IdField a) a id, IsElem (GetOneApi a) api
+  , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
+  , BuildRels api (Relations a) a
+  , HasResource (HAL t)
+  ) => ToResource (HAL t) api a where
+  toResource _ api x = HALResource x (defaultLinks api x) mempty

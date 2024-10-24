@@ -30,4 +30,6 @@ instance Related User where
   type IdField User = "usrId"
   type GetOneApi User = UserGetOne
   type CollectionName User = "users"
-  type Relations User = '[ 'HRel "address" "addressId" AddressGetOne ]
+  type Relations User =
+    '[ 'HRel "address" "addressId" AddressGetOne
+     ]
