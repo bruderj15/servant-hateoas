@@ -11,56 +11,59 @@ Currently in infant state.
 Final goal is something similar to what has been proposed [here](https://www.servant.dev/extending.html#other-directions).
 
 ## What can we do already?
-Define an instance for class `HasResource api a` where `a` is the datatype you want to have a resty Api for and
+Define an instance for class `ToResource ct api a` where `ct` is the Content-Type, `a` is the datatype you want to have a resty Api for and
 `api` is the type of your Servant-Api within which the resty representation of your datatype `a` lives.
 
+When providing some extra information with an instance for `Related a` we can derive related links.
 ## Example
 ```haskell
-data User = User { usrId :: Int, addressId :: Int }
-  deriving stock (Show, Eq)
+data User = User { usrId :: Int, addressId :: Int, income :: Double }
+  deriving stock (Generic, Show, Eq, Ord)
   deriving anyclass ToJSON
 
 data Address = Address { addrId :: Int, street :: String, number :: Int}
-  deriving stock (Show, Eq)
+  deriving stock (Generic, Show, Eq, Ord)
   deriving anyclass ToJSON
 
 type CompleteApi = AddressApi :<|> UserApi
 
 type AddressApi = AddressGetOne
-type AddressGetOne = "address" :> Capture "id" Int :> Get '[HALJSON] (Resource Address)
+type AddressGetOne = "address" :> Capture "id" Int :> Get '[HAL JSON] (HALResource Address)
 
-type UserApi = UserGetOne
-type UserGetOne = "user" :> Capture "id" Int :> Get '[HALJSON] (Resource User)
+type UserApi = UserGetOne :<|> UserGetAll
+type UserGetOne = "user" :> Capture "id" Int :> Get '[HAL JSON] (HALResource User)
+type UserGetAll = "user" :> Get '[HAL JSON] (HALResource [User])
 
-instance HasResource CompleteApi User where
-  toResource api u@(User uId aId) = Resource u
-    [ ("self", mkSelf uId)
-    , ("address", mkAddr (aId))
-    ]
-    where
-      mkSelf = safeLink api (Proxy @UserGetOne)
-      mkAddr = safeLink api (Proxy @AddressGetOne)
+instance Related User where
+  type IdSelName User      = "usrId"              -- This is type-safe because of using class HasField
+  type GetOneApi User      = UserGetOne
+  type CollectionName User = "users"
+  type Relations User      =
+    '[ 'HRel "address" "addressId" AddressGetOne  -- Also type-safe
+     ]
 ```
 ```haskell
->>> mimeRender (Proxy @HALJSON) $ toResource (Proxy @CompleteApi) $ User 1 42
+>>> mimeRender (Proxy @JSON) $ toResource (Proxy @(HAL JSON)) (Proxy @CompleteApi) $ User 1 100 100000
 ```
 ```json
 {
   "_links": {
     "address": {
-      "href": "address/42"
+      "href": "address/100"
     },
     "self": {
       "href": "user/1"
     }
   },
-  "addressId": 42,
+  "addressId": 100,
+  "income": 100000,
   "usrId": 1
 }
 ```
 
 ## Goals
-- [ ] Generically deriving `HasResource api` where possible
+- [x] Deriving links where possible
+- [ ] Deriving links even better...?
 - [ ] Type-level rewriting of APIs like `CompleteAPI` to make API HATEOAS-compliant
 
 ## Media-Types
