@@ -2,6 +2,7 @@ module Servant.Hateoas.Resource where
 
 import Servant
 import Data.Kind
+import GHC.TypeLits
 
 class HasResource ct where
   type Resource ct :: Type -> Type
@@ -12,6 +13,8 @@ class HasResource ct => ToResource ct api a where
 class Resty a where
   type Id a :: Type
   type GetOneApi a :: Type
+  type CollectionName a :: Symbol
+  type CollectionName a = "items"
   getId :: a -> Id a
 
 type IsResty api a = (Resty a, HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (Id a -> Link), IsElem (GetOneApi a) api)

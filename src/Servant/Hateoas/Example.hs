@@ -29,6 +29,7 @@ type UserGetAll = "user" :> Get '[HAL JSON] (HALResource [User])
 instance Resty User where
   type Id User = Int
   type GetOneApi User = UserGetOne
+  type CollectionName User = "users"
   getId = usrId
 
 instance ToResource (HAL JSON) CompleteApi User where
@@ -36,6 +37,6 @@ instance ToResource (HAL JSON) CompleteApi User where
     [ selfLink api u
     , ("address", mkAddr (addressId u))
     ]
-    [("address", SomeToJSON $ Address 100 "Foo-Bar-Street" 42)]
+    []
     where
       mkAddr = safeLink api (Proxy @AddressGetOne)
