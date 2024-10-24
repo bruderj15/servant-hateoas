@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 module Servant.Hateoas.ContentType.HAL where
 
@@ -14,6 +15,7 @@ import Data.Aeson
 import Data.Aeson.KeyMap (singleton)
 import GHC.Exts
 import GHC.TypeLits
+import GHC.Generics
 
 data HAL (a :: Type)
 
@@ -21,7 +23,7 @@ data HALResource a = HALResource
   { resource :: a
   , links    :: [(String, Link)]
   , embedded :: [(String, SomeToJSON HALResource)]
-  }
+  } deriving (Generic)
 
 instance HasResource (HAL JSON) where
   type Resource (HAL JSON) = HALResource

@@ -9,7 +9,7 @@ import Data.Aeson
 import GHC.Generics
 
 -------------- Example for dev --------------
-data User = User { usrId :: Int, addressId :: Int }
+data User = User { usrId :: Int, addressId :: Int, income :: Double }
   deriving stock (Generic, Show, Eq, Ord)
   deriving anyclass ToJSON
 
@@ -28,15 +28,7 @@ type UserGetAll = "user" :> Get '[HAL JSON] (HALResource [User])
 
 instance Resty User where
   type Id User = Int
+  getId = usrId
   type GetOneApi User = UserGetOne
   type CollectionName User = "users"
-  getId = usrId
-
-instance ToResource (HAL JSON) CompleteApi User where
-  toResource _ api u = HALResource u
-    [ selfLink api u
-    , ("address", mkAddr (addressId u))
-    ]
-    []
-    where
-      mkAddr = safeLink api (Proxy @AddressGetOne)
+  type Relations User = '("address", "addressId", AddressGetOne)
