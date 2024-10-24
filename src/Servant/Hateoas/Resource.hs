@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Servant.Hateoas.Resource where
 
 import Servant
@@ -23,7 +25,7 @@ class Resty a where
   type CollectionName a :: Symbol
   type CollectionName a = "items"
 
-  type Relations a :: Relation
+  type Relations a :: [Relation]
 
 type IsResty api a = (Resty a, HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (Id a -> Link), IsElem (GetOneApi a) api)
 
@@ -32,9 +34,25 @@ selfLink api x = ("self", mkSelf $ getId x)
   where
     mkSelf = safeLink api (Proxy @(GetOneApi a))
 
-defaultLink :: forall api a relName fieldName endpoint b. ( Resty a, '(relName, fieldName, endpoint) ~ Relations a, KnownSymbol relName
-                , HasField fieldName a b, HasLink endpoint, IsElem endpoint api, MkLink endpoint Link ~ (b -> Link)
-                ) => Proxy api -> a -> [(String, Link)]
-defaultLink api x = [(symbolVal (Proxy @relName), mkLink $ getField @fieldName x)]
-  where
-    mkLink = safeLink api (Proxy @endpoint)
+type BuildLinks :: Type -> [Relation] -> Type -> Constraint
+class BuildLinks api rs a where
+  buildLinks :: Proxy api -> Proxy rs -> a -> [(String, Link)]
+
+instance BuildLinks api '[] a where
+  buildLinks _ _ _ = []
+
+instance
+  ( KnownSymbol relName
+  , HasField fieldName a id
+  , HasLink endpoint
+  , IsElem endpoint api
+  , MkLink endpoint Link ~ (id -> Link)
+  , BuildLinks api rs a
+  ) => BuildLinks api ('(relName, fieldName, endpoint) ': rs) a where
+  buildLinks api _ x = l : buildLinks api (Proxy @rs) x
+    where
+      mkLink = safeLink api (Proxy @endpoint)
+      l = (symbolVal (Proxy @relName), mkLink $ getField @fieldName x)
+
+defaultLinks :: forall api a. (Resty a, BuildLinks api (Relations a) a) => Proxy api -> a -> [(String, Link)]
+defaultLinks api x = buildLinks api (Proxy @(Relations a)) x

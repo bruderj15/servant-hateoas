@@ -31,4 +31,4 @@ instance Resty User where
   getId = usrId
   type GetOneApi User = UserGetOne
   type CollectionName User = "users"
-  type Relations User = '("address", "addressId", AddressGetOne)
+  type Relations User = '[ '("address", "addressId", AddressGetOne) ]
