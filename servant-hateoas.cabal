@@ -24,7 +24,6 @@ library
     exposed-modules:  Servant.Hateoas
                     , Servant.Hateoas.Some
                     , Servant.Hateoas.Resource
-                    , Servant.Hateoas.ContentType
                     , Servant.Hateoas.ContentType.HAL
 
     other-modules:    Servant.Hateoas.Example
