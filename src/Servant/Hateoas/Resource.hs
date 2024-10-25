@@ -43,11 +43,15 @@ data HRel = HRel
 
 -- | Types that have Hypermedia-Relations.
 class Related a where
-  type IdSelName a      :: Symbol       -- ^ Name of the record selector that holds the resources identifier
-  type GetOneApi a      :: Type         -- ^ Servant-Endpoint for retrieving one @a@ by its identifier
-  type CollectionName a :: Symbol       -- ^ Name for collected values, defaults to @\"item\"@
+  -- | Name of the record selector that holds the resources identifier
+  type IdSelName a      :: Symbol
+  -- | Servant-Endpoint for retrieving one @a@ by its identifier
+  type GetOneApi a      :: Type
+  -- | Name for collected values
+  type CollectionName a :: Symbol
   type CollectionName a = "items"
-  type Relations a      :: [HRel]       -- ^ List of all relations @a@ has
+  -- | List of all relations @a@ has
+  type Relations a      :: [HRel]
 
 -- | Class for deriving Hypermedia-Relations for types.
 type BuildRels :: Type -> [HRel] -> Type -> Constraint
