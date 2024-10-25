@@ -63,7 +63,7 @@ instance Related User where
 
 ## Goals
 - [x] Deriving links where possible
-- [ ] Deriving links even better...?
+- [ ] Deriving links for paging, ...
 - [ ] Type-level rewriting of APIs like `CompleteAPI` to make API HATEOAS-compliant
 
 ## Media-Types
