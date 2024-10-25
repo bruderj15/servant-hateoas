@@ -1,3 +1,4 @@
+[![Hackage](https://img.shields.io/hackage/v/servant-hateoas.svg)](https://hackage.haskell.org/package/servant-hateoas)
 ![Static Badge](https://img.shields.io/badge/Lang-GHC2021-blue)
 [![Haskell-CI](https://github.com/bruderj15/servant-hateoas/actions/workflows/haskell-ci.yml/badge.svg)](https://github.com/bruderj15/servant-hateoas/actions/workflows/haskell-ci.yml)
 

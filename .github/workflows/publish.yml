@@ -1,0 +1,26 @@
+name: publish
+
+on:
+  push:
+    branches:
+      - hackage
+
+jobs:
+  publish:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: sol/haskell-autotag@v1
+        id: autotag
+      - run: ghcup install ghc 9.6.4
+      - run: ghcup set ghc 9.6.4
+      - run: cabal sdist
+      - run: cabal update
+      - run: cabal haddock --haddock-for-hackage --enable-documentation
+      - uses: haskell-actions/hackage-publish@v1.1
+        with:
+          hackageToken: ${{ secrets.HACKAGE_AUTH_TOKEN }}
+          publish: true
+          docsPath: dist-newstyle
