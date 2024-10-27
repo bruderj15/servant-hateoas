@@ -29,6 +29,7 @@ library
                        , Servant.Hateoas.Some
                        , Servant.Hateoas.Resource
                        , Servant.Hateoas.ContentType.HAL
+                       , Servant.Hateoas.ContentType.Collection
 
     other-modules:       Servant.Hateoas.Example
 
