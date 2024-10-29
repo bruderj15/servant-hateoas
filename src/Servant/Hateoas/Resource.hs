@@ -4,7 +4,10 @@
 module Servant.Hateoas.Resource
 (
   -- * Resource
-  Resource(..)
+  -- ** Modification
+  Resource(..), EmbeddingResource(..), CollectingResource(..)
+
+  -- ** Construction
 , ToResource(..)
 , ToCollection(..)
 
@@ -23,15 +26,27 @@ where
 
 import Servant
 import Data.Kind
+import Data.Aeson
 import GHC.TypeLits
 import GHC.Records
 
--- | Class that indicates that a Content-Type has a specific Resource-Representation.
+-- | Class for resources that carry Hypermedia-Relations.
 class Resource res where
+  -- | Add a relation @(rel, link)@ to a resource.
   addLink :: (String, Link) -> res a -> res a
 
+-- | Class for 'Resource's that can embed other resources.
+class Resource res => EmbeddingResource res where
+  -- | Embed a resource @b@ with its relation @rel@ as tuple @(rel, b)@.
+  embed :: ToJSON b => (String, b) -> res a -> res a
+
+-- | Class for 'Resource's that can collect multiple resources.
+class Resource res => CollectingResource res where
+  -- | Collect a resource into the collection.
+  collect :: a -> res a -> res a
+
 -- | Class for converting values of @a@ to their respective Resource-Representation.
-class Resource res => ToResource api res a where
+class ToResource api res a where
   -- | Converts a value into it's Resource-Representation.
   toResource :: a -> res a
   toResource = toResource' (Proxy @api) (Proxy @res)
@@ -42,7 +57,7 @@ class Resource res => ToResource api res a where
   {-# MINIMAL toResource | toResource' #-}
 
 -- | Class for converting multiple values of @a@ to their respective collection-like representation.
-class Resource res => ToCollection api res a where
+class ToCollection api res a where
   -- | Converts a many values into their Collection-Representation.
   toCollection :: Foldable f => f a -> res a
   toCollection = toCollection' (Proxy @api) (Proxy @res)
@@ -96,7 +111,7 @@ instance
 relatedLinks :: forall api a. (Related a, BuildRels api (Relations a) a) => Proxy api -> a -> [(String, Link)]
 relatedLinks = buildRels (Proxy @(Relations a))
 
--- | Generates the pair (\"self\", link) where @link@ is the 'Link' to @a@ itself.
+-- | Generates the pair @(\"self\", link)@ where @link@ is the 'Link' to @a@ itself.
 selfLink :: forall api a id.
   ( Related a, HasField (IdSelName a) a id
   , IsElem (GetOneApi a) api, HasLink (GetOneApi a)

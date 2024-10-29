@@ -28,9 +28,9 @@ data Collection (t :: Type)
 
 -- | Resource wrapper for 'Collection'.
 data CollectionResource a = CollectionResource
-  { href     :: Maybe Link
-  , resource :: [CollectionItem a]
-  , links    :: [(String, Link)]
+  { href  :: Maybe Link
+  , items :: [CollectionItem a]
+  , links :: [(String, Link)]
   } deriving (Show, Generic)
 
 -- | A single item inside a 'CollectionResource'.
@@ -48,6 +48,9 @@ instance Resource CollectionItem where
 instance Accept (Collection JSON) where
   contentType _ = "application" M.// "vnd.collection+json"
 
+collectionLinks :: [(String, Link)] -> Value
+collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= linkURI l]) <> xs) mempty
+
 instance ToJSON a => ToJSON (CollectionItem a) where
   toJSON (CollectionItem (toJSON -> Object m) ls) = object ["data" .= itemData, "links" .= collectionLinks ls]
     where
@@ -60,8 +63,8 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (CollectionResource a) where
       collection = object $ ["version" .= ("1.0" :: String), "links" .= collectionLinks ls, "items" .= is'] <> maybe [] (pure . ("href" .=) . linkURI) mHref
       is' = Array $ Foldable.foldl' (\xs i -> pure (toJSON i) <> xs) mempty is
 
-collectionLinks :: [(String, Link)] -> Value
-collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= linkURI l]) <> xs) mempty
+instance CollectingResource CollectionResource where
+  collect i (CollectionResource mHref is ls) = CollectionResource mHref (CollectionItem i mempty : is) ls
 
 instance {-# OVERLAPPABLE #-}
   ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api

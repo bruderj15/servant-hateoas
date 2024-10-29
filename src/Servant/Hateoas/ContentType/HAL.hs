@@ -57,6 +57,9 @@ instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a
         .= (Array $ Foldable.foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
         ]
 
+instance EmbeddingResource HALResource where
+  embed e (HALResource r ls es) = HALResource r ls $ fmap SomeToJSON e : es
+
 instance {-# OVERLAPPABLE #-}
   ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
   , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
