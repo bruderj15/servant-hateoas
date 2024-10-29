@@ -48,6 +48,9 @@ instance Resource CollectionItem where
 instance Accept (Collection JSON) where
   contentType _ = "application" M.// "vnd.collection+json"
 
+instance ToJSON a => MimeRender (Collection JSON) (CollectionResource a) where
+  mimeRender _ = encode
+
 collectionLinks :: [(String, Link)] -> Value
 collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= linkURI l]) <> xs) mempty
 

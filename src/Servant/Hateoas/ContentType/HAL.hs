@@ -41,6 +41,9 @@ instance Resource HALResource where
 instance Accept (HAL JSON) where
   contentType _ = "application" M.// "hal+json"
 
+instance ToJSON a => MimeRender (HAL JSON) (HALResource a) where
+  mimeRender _ = encode
+
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
   toJSON (HALResource res ls es) = case toJSON res of
     Object kvm -> Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> kvm
