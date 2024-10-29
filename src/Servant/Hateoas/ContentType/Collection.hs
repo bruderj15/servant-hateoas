@@ -17,18 +17,19 @@ import qualified Data.Foldable as Foldable
 import Data.Kind
 import Data.Aeson
 import GHC.Exts
+import GHC.Records
 import GHC.Generics
 
 -- | Data-Kind representing Content-Types of HATEOAS collections.
 --
---   Type parameter @t@ is the mime type suffix in @application/vnd.collection+t@.
+-- Type parameter @t@ is the Mime-Type suffix in @application/vnd.collection+t@.
 data Collection (t :: Type)
 
--- | Resource wrapper for Collection.
+-- | Resource wrapper for 'Collection'.
 data CollectionResource a = CollectionResource
-  { href  :: Maybe String
-  , items :: [CollectionItem a]
-  , links :: [(String, Link)]
+  { href     :: Maybe Link
+  , resource :: [CollectionItem a]
+  , links    :: [(String, Link)]
   } deriving (Show, Generic)
 
 -- | A single item inside a 'CollectionResource'.
@@ -52,10 +53,19 @@ instance ToJSON a => ToJSON (CollectionItem a) where
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (CollectionResource a) where
   toJSON (CollectionResource mHref is ls) = object ["collection".= collection]
     where
-      collection = object $ ["version" .= ("1.0" :: String), "links" .= collectionLinks ls, "items" .= is'] <> maybe [] (pure . ("href" .=)) mHref
+      collection = object $ ["version" .= ("1.0" :: String), "links" .= collectionLinks ls, "items" .= is'] <> maybe [] (pure . ("href" .=) . linkURI) mHref
       is' = Array $ Foldable.foldl' (\xs i -> pure (toJSON i) <> xs) mempty is
 
 collectionLinks :: [(String, Link)] -> Value
 collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= linkURI l]) <> xs) mempty
 
--- instance ToResource ... - both for CollectionItem and CollectionResource...?
+instance {-# OVERLAPPABLE #-}
+  ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
+  , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
+  , BuildRels api (Relations a) a
+  , HasResource (Collection t)
+  )
+  => ToCollection (Collection t) api a where
+  toCollection _ api is = CollectionResource Nothing is' mempty
+    where
+      is' = foldl' (\xs x -> CollectionItem x (defaultLinks api x) : xs) mempty is

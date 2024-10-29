@@ -5,6 +5,7 @@ module Servant.Hateoas.Resource
   -- * Resource
   HasResource(..)
 , ToResource(..)
+, ToCollection(..)
 
 -- * Hypermedia-Relations
 -- ** Type
@@ -33,6 +34,10 @@ class HasResource ct where
 class HasResource ct => ToResource ct api a where
   -- | Converts a value into it's Resource-Representation.
   toResource :: Proxy ct -> Proxy api -> a -> Resource ct a
+
+-- TODO: Können wir das auch gleich für die HAL-Instanz auf Listen anwenden?
+class HasResource ct => ToCollection ct api a where
+  toCollection :: Foldable f => Proxy ct -> Proxy api -> f a -> Resource ct a
 
 -- | Data-Kind for Hypermedia-Relations.
 data HRel = HRel
