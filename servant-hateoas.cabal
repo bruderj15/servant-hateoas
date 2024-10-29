@@ -6,6 +6,8 @@ description:             Create Resource-Representations for your types and make
   Resource construction is generic where possible and manually adjustable where required.
   Currently HAL+JSON is the only supported Content-Type, work for more is in progress.
   The ultimate goal is to generate an entirely HATEOAS-compliant API generically.
+homepage:                https://github.com/bruderj15/servant-hateoas
+bug-reports:             https://github.com/bruderj15/servant-hateoas/issues
 license:                 BSD-3-Clause
 license-file:            LICENSE
 author:                  Julian Bruder
