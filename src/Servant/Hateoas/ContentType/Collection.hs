@@ -16,6 +16,7 @@ import Servant.Links
 import qualified Data.Foldable as Foldable
 import Data.Kind
 import Data.Aeson
+import Data.Proxy
 import GHC.Exts
 import GHC.Records
 import GHC.Generics
@@ -38,8 +39,11 @@ data CollectionItem a = CollectionItem
   , itemLinks :: [(String, Link)]
   } deriving (Show, Generic)
 
-instance HasResource (Collection t) where
-  type Resource (Collection t) = CollectionResource
+instance Resource CollectionResource where
+  addLink l (CollectionResource h r ls) = CollectionResource h r (l:ls)
+
+instance Resource CollectionItem where
+  addLink l (CollectionItem i ls) = CollectionItem i (l:ls)
 
 instance Accept (Collection JSON) where
   contentType _ = "application" M.// "vnd.collection+json"
@@ -63,9 +67,9 @@ instance {-# OVERLAPPABLE #-}
   ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
   , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
   , BuildRels api (Relations a) a
-  , HasResource (Collection t)
+  , Resource CollectionResource
   )
-  => ToCollection (Collection t) api a where
-  toCollection _ api is = CollectionResource Nothing is' mempty
+  => ToCollection api CollectionResource a where
+  toCollection is = CollectionResource Nothing is' mempty
     where
-      is' = foldl' (\xs x -> CollectionItem x (defaultLinks api x) : xs) mempty is
+      is' = foldl' (\xs x -> CollectionItem x (defaultLinks (Proxy @api) x) : xs) mempty is

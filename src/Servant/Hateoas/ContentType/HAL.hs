@@ -35,8 +35,8 @@ data HALResource a = HALResource
   , embedded :: [(String, SomeToJSON HALResource)]
   } deriving (Generic)
 
-instance HasResource (HAL t) where
-  type Resource (HAL t) = HALResource
+instance Resource HALResource where
+  addLink l (HALResource r ls es) = HALResource r (l:ls) es
 
 instance Accept (HAL JSON) where
   contentType _ = "application" M.// "hal+json"
@@ -61,6 +61,6 @@ instance {-# OVERLAPPABLE #-}
   ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
   , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
   , BuildRels api (Relations a) a
-  , HasResource (HAL t)
-  ) => ToResource (HAL t) api a where
-  toResource _ api x = HALResource x (defaultLinks api x) mempty
+  , Resource HALResource
+  ) => ToResource api HALResource a where
+  toResource x = HALResource x (defaultLinks (Proxy @api) x) mempty

@@ -1,9 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Servant.Hateoas.Resource
 (
   -- * Resource
-  HasResource(..)
+  Resource(..)
 , ToResource(..)
 , ToCollection(..)
 
@@ -26,19 +27,30 @@ import GHC.TypeLits
 import GHC.Records
 
 -- | Class that indicates that a Content-Type has a specific Resource-Representation.
-class HasResource ct where
-  -- | Associated type for this Content-Type
-  type Resource ct :: Type -> Type
+class Resource res where
+  addLink :: (String, Link) -> res a -> res a
 
 -- | Class for converting values of @a@ to their respective Resource-Representation.
-class HasResource ct => ToResource ct api a where
+class Resource res => ToResource api res a where
   -- | Converts a value into it's Resource-Representation.
-  toResource :: Proxy ct -> Proxy api -> a -> Resource ct a
+  toResource :: a -> res a
+  toResource = toResource' (Proxy @api) (Proxy @res)
+
+  -- | Like 'toResource' but takes proxies for ambiguity.
+  toResource' :: Proxy api -> Proxy res -> a -> res a
+  toResource' _ _ = toResource @api @res
+  {-# MINIMAL toResource | toResource' #-}
 
 -- | Class for converting multiple values of @a@ to their respective collection-like representation.
-class HasResource ct => ToCollection ct api a where
-  -- | Converts a many values into their Collecrion-Representation.
-  toCollection :: Foldable f => Proxy ct -> Proxy api -> f a -> Resource ct a
+class Resource res => ToCollection api res a where
+  -- | Converts a many values into their Collection-Representation.
+  toCollection :: Foldable f => f a -> res a
+  toCollection = toCollection' (Proxy @api) (Proxy @res)
+
+  -- | Like 'toCollection' but takes proxies for ambiguity.
+  toCollection' :: Foldable f => Proxy api -> Proxy res -> f a -> res a
+  toCollection' _ _ = toCollection @api @res
+  {-# MINIMAL toCollection | toCollection' #-}
 
 -- | Data-Kind for Hypermedia-Relations.
 data HRel = HRel
