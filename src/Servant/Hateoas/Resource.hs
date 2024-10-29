@@ -1,10 +1,15 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Servant.Hateoas.Resource
 (
   -- * Resource
-  HasResource(..)
-, ToResource(..)
+  -- ** Construction
+  ToResource(..)
+, ToCollection(..)
+
+  -- ** Modification
+, Resource(..), EmbeddingResource(..), CollectingResource(..)
 
 -- * Hypermedia-Relations
 -- ** Type
@@ -21,18 +26,46 @@ where
 
 import Servant
 import Data.Kind
+import Data.Aeson
 import GHC.TypeLits
 import GHC.Records
 
--- | Class that indicates that a Content-Type has a specific Resource-Representation.
-class HasResource ct where
-  -- | Associated type for this Content-Type
-  type Resource ct :: Type -> Type
+-- | Class for resources that carry Hypermedia-Relations.
+class Resource res where
+  -- | Add a relation @(rel, link)@ to a resource.
+  addLink :: (String, Link) -> res a -> res a
+
+-- | Class for 'Resource's that can embed other resources.
+class Resource res => EmbeddingResource res where
+  -- | Embed a resource @b@ with its relation @rel@ as tuple @(rel, b)@.
+  embed :: ToJSON b => (String, b) -> res a -> res a
+
+-- | Class for 'Resource's that can collect multiple resources.
+class Resource res => CollectingResource res where
+  -- | Collect a resource into the collection.
+  collect :: a -> res a -> res a
 
 -- | Class for converting values of @a@ to their respective Resource-Representation.
-class HasResource ct => ToResource ct api a where
+class ToResource api res a where
   -- | Converts a value into it's Resource-Representation.
-  toResource :: Proxy ct -> Proxy api -> a -> Resource ct a
+  toResource :: a -> res a
+  toResource = toResource' (Proxy @api) (Proxy @res)
+
+  -- | Like 'toResource' but takes proxies for ambiguity.
+  toResource' :: Proxy api -> Proxy res -> a -> res a
+  toResource' _ _ = toResource @api @res
+  {-# MINIMAL toResource | toResource' #-}
+
+-- | Class for converting multiple values of @a@ to their respective collection-like representation.
+class ToCollection api res a where
+  -- | Converts many values into their Collection-Representation.
+  toCollection :: Foldable f => f a -> res a
+  toCollection = toCollection' (Proxy @api) (Proxy @res)
+
+  -- | Like 'toCollection' but takes proxies for ambiguity.
+  toCollection' :: Foldable f => Proxy api -> Proxy res -> f a -> res a
+  toCollection' _ _ = toCollection @api @res
+  {-# MINIMAL toCollection | toCollection' #-}
 
 -- | Data-Kind for Hypermedia-Relations.
 data HRel = HRel
@@ -78,7 +111,7 @@ instance
 relatedLinks :: forall api a. (Related a, BuildRels api (Relations a) a) => Proxy api -> a -> [(String, Link)]
 relatedLinks = buildRels (Proxy @(Relations a))
 
--- | Generates the pair (\"self\", link) where @link@ is the 'Link' to @a@ itself.
+-- | Generates the pair @(\"self\", link)@ where @link@ is the 'Link' to @a@ itself.
 selfLink :: forall api a id.
   ( Related a, HasField (IdSelName a) a id
   , IsElem (GetOneApi a) api, HasLink (GetOneApi a)

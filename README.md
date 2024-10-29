@@ -12,10 +12,11 @@ Currently in infant state.
 Final goal is something similar to what has been proposed [here](https://www.servant.dev/extending.html#other-directions).
 
 ## What can we do already?
-Define an instance for class `ToResource ct api a` where `ct` is the Content-Type, `a` is the datatype you want to have a resty Api for and
-`api` is the type of your Servant-Api within which the resty representation of your datatype `a` lives.
+Define an instance for class `ToResource api res a` where `api` is the type of your Servant-Api within which the resty representation
+of your datatype `a` lives and `res` is the resource-representation to create.
 
-When providing some extra information with an instance for `Related a` we can derive related links.
+When providing some extra information with an instance for `Related a` there are stock instances which derive the links
+based on the relations in your instance.
 ## Example
 ```haskell
 data User = User { usrId :: Int, addressId :: Int, income :: Double }
@@ -33,43 +34,49 @@ type AddressGetOne = "address" :> Capture "id" Int :> Get '[HAL JSON] (HALResour
 
 type UserApi = UserGetOne :<|> UserGetAll
 type UserGetOne = "user" :> Capture "id" Int :> Get '[HAL JSON] (HALResource User)
-type UserGetAll = "user" :> Get '[HAL JSON] (HALResource [User])
+type UserGetAll = "user" :> Get '[Collection JSON] (CollectionResource User)
 
 instance Related User where
-  type IdSelName User      = "usrId"              -- This is type-safe because of using class HasField
-  type GetOneApi User      = UserGetOne
+  type IdSelName User = "usrId"
+  type GetOneApi User = UserGetOne
   type CollectionName User = "users"
-  type Relations User      =
-    '[ 'HRel "address" "addressId" AddressGetOne  -- Also type-safe
+  type Relations User =
+    '[ 'HRel "address" "addressId" AddressGetOne
      ]
+
 ```
 ```haskell
->>> mimeRender (Proxy @JSON) $ toResource (Proxy @(HAL JSON)) (Proxy @CompleteApi) $ User 1 100 100000
+>>> mimeRender (Proxy @(HAL JSON)) $ toResource @CompleteApi @HALResource $ User 1 42 100000
 ```
 ```json
 {
   "_links": {
     "address": {
-      "href": "address/100"
+      "href": "address/42"
     },
     "self": {
       "href": "user/1"
     }
   },
-  "addressId": 100,
+  "addressId": 42,
   "income": 100000,
   "usrId": 1
 }
 ```
 
 ## Goals
-- [x] Deriving links where possible
+- [x] Deriving simple links for self and relations
 - [ ] Deriving links for paging, ...
 - [ ] Type-level rewriting of APIs like `CompleteAPI` to make API HATEOAS-compliant
 
 ## Media-Types
-Currently we only serve Content-Type `application/hal+json`.
-Support for others such as `application/vnd.collection+json` or `application/vnd.amundsen-uber+json` can easily be added
-with instances for `Accept` and `MimeRender`.
+- [x] `application/hal+json`
+- [x] `application/collection+json`
+- [ ] Others: Easily extensible
 
-Client usage with `MimeUnrender` is not yet supported but easily extensible.
+Client usage with `MimeUnrender` is not yet supported.
+
+## Contact information
+Contributions, critics and bug reports are welcome!
+
+Please feel free to contact me through GitHub.
