@@ -49,7 +49,7 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
       ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
       es' = object [fromString name .= toJSON e | (name, e) <- es]
 
-instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a)) => ToJSON ([HALResource a]) where
+instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a)) => ToJSON [HALResource a] where
   toJSON xs = object ["_links" .= (mempty :: Object), "_embedded" .= es]
     where
       es = object $

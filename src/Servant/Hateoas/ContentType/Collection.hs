@@ -51,7 +51,7 @@ instance ToJSON a => ToJSON (CollectionItem a) where
   toJSON (CollectionItem (toJSON -> v) _) = v
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (CollectionResource a) where
-  toJSON (CollectionResource mHref is ls) = object ["collection".= collection]
+  toJSON (CollectionResource mHref is ls) = object ["collection" .= collection]
     where
       collection = object $ ["version" .= ("1.0" :: String), "links" .= collectionLinks ls, "items" .= is'] <> maybe [] (pure . ("href" .=) . linkURI) mHref
       is' = Array $ Foldable.foldl' (\xs i -> pure (toJSON i) <> xs) mempty is

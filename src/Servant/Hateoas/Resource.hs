@@ -35,8 +35,9 @@ class HasResource ct => ToResource ct api a where
   -- | Converts a value into it's Resource-Representation.
   toResource :: Proxy ct -> Proxy api -> a -> Resource ct a
 
--- TODO: Können wir das auch gleich für die HAL-Instanz auf Listen anwenden?
+-- | Class for converting multiple values of @a@ to their respective collection-like representation.
 class HasResource ct => ToCollection ct api a where
+  -- | Converts a many values into their Collecrion-Representation.
   toCollection :: Foldable f => Proxy ct -> Proxy api -> f a -> Resource ct a
 
 -- | Data-Kind for Hypermedia-Relations.
