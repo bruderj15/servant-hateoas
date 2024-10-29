@@ -6,6 +6,7 @@
 module Servant.Hateoas.ContentType.Collection
 ( Collection
 , CollectionResource(..)
+, CollectionItem(..)
 )
 where
 
@@ -28,15 +29,15 @@ data Collection (t :: Type)
 
 -- | Resource wrapper for 'Collection'.
 data CollectionResource a = CollectionResource
-  { href  :: Maybe Link
-  , items :: [CollectionItem a]
-  , links :: [(String, Link)]
+  { href  :: Maybe Link                   -- ^ Link to the collection
+  , items :: [CollectionItem a]           -- ^ All items in the collection
+  , links :: [(String, Link)]             -- ^ Pairs @(rel, link)@ for relations
   } deriving (Show, Generic)
 
 -- | A single item inside a 'CollectionResource'.
 data CollectionItem a = CollectionItem
-  { item :: a
-  , itemLinks :: [(String, Link)]
+  { item :: a                             -- ^ Wrapped item
+  , itemLinks :: [(String, Link)]         -- ^ Links for the wrapped item
   } deriving (Show, Generic)
 
 instance Resource CollectionResource where

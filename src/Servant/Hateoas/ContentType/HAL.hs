@@ -23,16 +23,16 @@ import GHC.TypeLits
 import GHC.Generics
 import GHC.Records
 
--- | Data-Kind representing Content-Types with Hypertext Application Language (HAL).
+-- | Data-Kind representing Content-Types of Hypertext Application Language (HAL).
 --
 --   Type parameter @t@ is the mime type suffix in @application/hal+t@.
 data HAL (t :: Type)
 
 -- | Resource wrapper for HAL.
 data HALResource a = HALResource
-  { resource :: a
-  , links    :: [(String, Link)]
-  , embedded :: [(String, SomeToJSON HALResource)]
+  { resource :: a                                       -- ^ Wrapped resource
+  , links    :: [(String, Link)]                        -- ^ Pairs @(rel, link)@ for relations
+  , embedded :: [(String, SomeToJSON HALResource)]      -- ^ Pairs @(rel, resource)@ for embedded resources
   } deriving (Generic)
 
 instance Resource HALResource where
