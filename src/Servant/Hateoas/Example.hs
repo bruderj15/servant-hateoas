@@ -23,7 +23,7 @@ type AddressGetOne = "address" :> Capture "id" Int :> Get '[HAL JSON] (HALResour
 
 type UserApi = UserGetOne :<|> UserGetAll
 type UserGetOne = "user" :> Capture "id" Int :> Get '[HAL JSON] (HALResource User)
-type UserGetAll = "user" :> Get '[HAL JSON] (HALResource [User])
+type UserGetAll = "user" :> Get '[Collection JSON] (CollectionResource User)
 
 instance Related User where
   type IdSelName User = "usrId"

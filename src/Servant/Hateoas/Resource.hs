@@ -4,12 +4,12 @@
 module Servant.Hateoas.Resource
 (
   -- * Resource
-  -- ** Modification
-  Resource(..), EmbeddingResource(..), CollectingResource(..)
-
   -- ** Construction
-, ToResource(..)
+  ToResource(..)
 , ToCollection(..)
+
+  -- ** Modification
+, Resource(..), EmbeddingResource(..), CollectingResource(..)
 
 -- * Hypermedia-Relations
 -- ** Type
@@ -58,7 +58,7 @@ class ToResource api res a where
 
 -- | Class for converting multiple values of @a@ to their respective collection-like representation.
 class ToCollection api res a where
-  -- | Converts a many values into their Collection-Representation.
+  -- | Converts many values into their Collection-Representation.
   toCollection :: Foldable f => f a -> res a
   toCollection = toCollection' (Proxy @api) (Proxy @res)
 
