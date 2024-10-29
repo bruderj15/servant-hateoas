@@ -78,4 +78,4 @@ instance {-# OVERLAPPABLE #-}
   => ToCollection api CollectionResource a where
   toCollection is = CollectionResource Nothing is' mempty
     where
-      is' = foldl' (\xs x -> CollectionItem x (defaultLinks (Proxy @api) x) : xs) mempty is
+      is' = Foldable.foldl' (\xs x -> CollectionItem x (defaultLinks (Proxy @api) x) : xs) mempty is
