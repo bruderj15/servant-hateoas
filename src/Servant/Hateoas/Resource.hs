@@ -38,7 +38,7 @@ class Resource res where
 -- | Class for 'Resource's that can embed other resources.
 class Resource res => EmbeddingResource res where
   -- | Embed a resource @b@ with its relation @rel@ as tuple @(rel, b)@.
-  embed :: ToJSON b => (String, b) -> res a -> res a
+  embed :: ToJSON e => (String, e) -> res a -> res a
 
 -- | Class for 'Resource's that can collect multiple resources.
 class Resource res => CollectingResource res where
