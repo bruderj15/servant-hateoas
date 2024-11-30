@@ -1,10 +1,10 @@
 cabal-version:           3.0
 name:                    servant-hateoas
-version:                 0.2.1
+version:                 0.2.2
 synopsis:                HATEOAS extension for servant
 description:             Create Resource-Representations for your types and make your API HATEOAS-compliant.
-  Resource construction is generic where possible and manually adjustable where required.
-  Currently HAL+JSON is the only supported Content-Type, work for more is in progress.
+  Automatically derive hypermedia-links where possible.
+  Currently HAL+JSON and Collection+JSON are the only supported Content-Types.
   The ultimate goal is to generate an entirely HATEOAS-compliant API generically.
 homepage:                https://github.com/bruderj15/servant-hateoas
 bug-reports:             https://github.com/bruderj15/servant-hateoas/issues

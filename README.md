@@ -66,13 +66,14 @@ instance Related User where
 
 ## Goals
 - [x] Deriving simple links for self and relations
-- [ ] Deriving links for paging, ...
+- [ ] Deriving more complex links...?
 - [ ] Type-level rewriting of APIs like `CompleteAPI` to make API HATEOAS-compliant
 
 ## Media-Types
 - [x] `application/hal+json`
 - [x] `application/collection+json`
-- [ ] Others: Easily extensible
+- [ ] `application/hal-forms+json` soon
+- [ ] Others: Maybe
 
 Client usage with `MimeUnrender` is not yet supported.
 
