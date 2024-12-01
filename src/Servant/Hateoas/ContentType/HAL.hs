@@ -9,11 +9,11 @@ module Servant.Hateoas.ContentType.HAL
 where
 
 import Servant.Hateoas.Resource
-import Servant.Hateoas.Some
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
 import Servant.Links
 import qualified Data.Foldable as Foldable
+import Data.Some.Constraint
 import Data.Kind
 import Data.Proxy
 import Data.Aeson
@@ -32,7 +32,7 @@ data HAL (t :: Type)
 data HALResource a = HALResource
   { resource :: a                                       -- ^ Wrapped resource
   , links    :: [(String, Link)]                        -- ^ Pairs @(rel, link)@ for relations
-  , embedded :: [(String, SomeToJSON HALResource)]      -- ^ Pairs @(rel, resource)@ for embedded resources
+  , embedded :: [(String, SomeF HALResource ToJSON)]    -- ^ Pairs @(rel, resource)@ for embedded resources
   } deriving (Generic)
 
 instance Resource HALResource where
@@ -50,7 +50,7 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
     v -> v
     where
       ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
-      es' = object [fromString name .= toJSON e | (name, e) <- es]
+      es' = object [fromString name .= toJSON e | (name, (Some1 e)) <- es]
 
 instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a)) => ToJSON [HALResource a] where
   toJSON xs = object ["_links" .= (mempty :: Object), "_embedded" .= es]
@@ -61,7 +61,7 @@ instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a
         ]
 
 instance EmbeddingResource HALResource where
-  embed e (HALResource r ls es) = HALResource r ls $ fmap SomeToJSON e : es
+  embed e (HALResource r ls es) = HALResource r ls $ fmap (\res -> Some1 $ HALResource res [] []) e : es
 
 instance {-# OVERLAPPABLE #-}
   ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
