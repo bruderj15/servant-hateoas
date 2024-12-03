@@ -27,6 +27,8 @@ import GHC.Generics
 -- Type parameter @t@ is the Mime-Type suffix in @application/vnd.collection+t@.
 data Collection (t :: Type)
 
+type instance MkResource (Collection t) = CollectionResource
+
 -- | Resource wrapper for 'Collection'.
 data CollectionResource a = CollectionResource
   { href  :: Maybe Link                   -- ^ Link to the collection

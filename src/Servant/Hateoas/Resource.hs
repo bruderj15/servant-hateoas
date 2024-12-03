@@ -4,8 +4,10 @@
 module Servant.Hateoas.Resource
 (
   -- * Resource
+  MkResource
+
   -- ** Construction
-  ToResource(..)
+, ToResource(..)
 , ToCollection(..)
 
   -- ** Modification
@@ -29,6 +31,9 @@ import Data.Kind
 import Data.Aeson
 import GHC.TypeLits
 import GHC.Records
+
+-- | Type family computing the Resource-Type belonging to this Content-Type.
+type family MkResource ct :: (Type -> Type)
 
 -- | Class for resources that carry Hypermedia-Relations.
 class Resource res where

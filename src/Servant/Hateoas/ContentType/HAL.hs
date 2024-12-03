@@ -28,6 +28,8 @@ import GHC.Records
 --   Type parameter @t@ is the mime type suffix in @application/hal+t@.
 data HAL (t :: Type)
 
+type instance MkResource (HAL t) = HALResource
+
 -- | Resource wrapper for HAL.
 data HALResource a = HALResource
   { resource :: a                                       -- ^ Wrapped resource
