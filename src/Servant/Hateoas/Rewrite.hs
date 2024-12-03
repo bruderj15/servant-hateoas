@@ -3,10 +3,9 @@ module Servant.Hateoas.Rewrite where
 import Servant
 import Data.Kind
 
-type MkHateoas :: Type -> (Type -> Type) -> Type -> Type
-type family MkHateoas api res ct :: Type where
-  MkHateoas (Verb m s _ a) res ct                     = Verb m s '[ct] (res a)
-  MkHateoas ((prefix :> a) :<|> (prefix :> b)) res ct = prefix :> (MkHateoas a res ct :<|> MkHateoas b res ct)
-  MkHateoas (a :<|> b) res ct                         = MkHateoas a res ct :<|> MkHateoas b res ct
-  MkHateoas ((prefix :> a) :>   (prefix :> b)) res ct = prefix :> (MkHateoas a res ct :>   MkHateoas b res ct)
-  MkHateoas (a :> b) res ct                           = a :> MkHateoas b res ct
+type NormalizeApi :: Type -> Type
+type family NormalizeApi api :: Type where
+  NormalizeApi ((prefix :> a) :<|> (prefix :> b)) = prefix :> (NormalizeApi a :<|> NormalizeApi b)
+  NormalizeApi (a :<|> b)                         = NormalizeApi a :<|> NormalizeApi b
+  NormalizeApi ((prefix :> a) :>   (prefix :> b)) = prefix :> (NormalizeApi a :>   NormalizeApi b)
+  NormalizeApi (a :> b)                           = a :> NormalizeApi b
