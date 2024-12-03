@@ -54,13 +54,14 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
       ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
       es' = object [fromString name .= toJSON e | (name, (Some1 e)) <- es]
 
-instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a)) => ToJSON [HALResource a] where
-  toJSON xs = object ["_links" .= (mempty :: Object), "_embedded" .= es]
+instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a)) => ToJSON (HALResource [a]) where
+  toJSON (HALResource xs ls es) = object ["_links" .= ls', "_embedded" .= object (exs <> es')]
     where
-      es = object $
-        [  fromString (symbolVal (Proxy @(CollectionName a)))
-        .= (Array $ Foldable.foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
-        ]
+      ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
+      es' = fmap (\(eName, (Some1 e)) -> fromString eName .= toJSON e) es
+      exs = [ fromString (symbolVal (Proxy @(CollectionName a)))
+              .= (Array $ Foldable.foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
+            ]
 
 instance EmbeddingResource HALResource where
   embed e (HALResource r ls es) = HALResource r ls $ fmap (\res -> Some1 $ HALResource res [] []) e : es
@@ -72,3 +73,13 @@ instance {-# OVERLAPPABLE #-}
   , Resource HALResource
   ) => ToResource api HALResource a where
   toResource x = HALResource x (defaultLinks (Proxy @api) x) mempty
+
+instance {-# OVERLAPPING #-}
+  ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
+  , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
+  , BuildRels api (Relations a) a
+  , Resource HALResource
+  ) => ToResource api HALResource [a] where
+  toResource xs = HALResource xs ls mempty
+    where
+      ls = concatMap (defaultLinks (Proxy @api)) xs
