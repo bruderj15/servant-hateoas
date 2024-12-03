@@ -1,11 +1,14 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Servant.Hateoas.Rewrite where
 
 import Servant
 import Data.Kind
 
-type NormalizeApi :: Type -> Type
-type family NormalizeApi api :: Type where
-  NormalizeApi ((prefix :> a) :<|> (prefix :> b)) = prefix :> (NormalizeApi a :<|> NormalizeApi b)
-  NormalizeApi (a :<|> b)                         = NormalizeApi a :<|> NormalizeApi b
-  NormalizeApi ((prefix :> a) :>   (prefix :> b)) = prefix :> (NormalizeApi a :>   NormalizeApi b)
-  NormalizeApi (a :> b)                           = a :> NormalizeApi b
+type Normalize :: Type -> Type
+type family Normalize api where
+  Normalize ((prefix :> a) :<|> (prefix :> b)) = Normalize (prefix :> (Normalize a :<|> Normalize b))
+  Normalize (a :<|> b)                         = Normalize a :<|> Normalize b
+  Normalize ((prefix :> a) :>   (prefix :> b)) = Normalize (prefix :> (Normalize a :>   Normalize b))
+  Normalize (a :> b)                           = a :> Normalize b
+  Normalize a                                  = a
