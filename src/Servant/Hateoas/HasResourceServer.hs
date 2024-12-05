@@ -22,42 +22,19 @@ instance {-# OVERLAPPABLE #-}
          getResourceServer m ct world (Proxy @a) (Proxy @aServerApi)
     :<|> getResourceServer m ct world (Proxy @b) (Proxy @bServerApi)
 
--- TODO: There surely is a hack for the instances with differing arity here.
--- Probably an instance for (a -> b) where b also has an instance...?
 instance
   ( Monad m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) x
-  , ResourcifyServer (m x) ct m ~ m ((MkResource ct) x)
-  ) => HasResourceServer world api (m x) m ct where
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (m p) m ct where
   getResourceServer m _ _ api _ = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api
 
 instance
   ( Monad m
-  , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) x
-  , ResourcifyServer (p -> m x) ct m ~ (p -> m ((MkResource ct) x))
-  ) => HasResourceServer world api (p -> m x) m ct where
-  getResourceServer m _ _ api _ p = toResource @(Resourcify world ct) @(MkResource ct) <$> plainHandler p
+  , HasResourceServer world api tail m ct
+  , ResourcifyServer tail ct m ~ ResourcifyServer tail ct m
+  ) => HasResourceServer world api (p -> tail) m ct where
+  getResourceServer m ct world api arity x = plainHandler x
     where
-      plainHandler = getHandler m api
-
-instance
-  ( Monad m
-  , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) x
-  , ResourcifyServer (p -> q -> m x) ct m ~ (p -> q -> m ((MkResource ct) x))
-  ) => HasResourceServer world api (p -> q -> m x) m ct where
-  getResourceServer m _ _ api _ p q = toResource @(Resourcify world ct) @(MkResource ct) <$> plainHandler p q
-    where
-      plainHandler = getHandler m api
-
-instance
-  ( Monad m
-  , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) x
-  , ResourcifyServer (p -> q -> r -> m x) ct m ~ (p -> q -> r -> m ((MkResource ct) x))
-  ) => HasResourceServer world api (p -> q -> r -> m x) m ct where
-  getResourceServer m _ _ api _ p q r = toResource @(Resourcify world ct) @(MkResource ct) <$> plainHandler p q r
-    where
-      plainHandler = getHandler m api
+      plainHandler = getResourceServer m ct world api arity
