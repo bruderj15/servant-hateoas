@@ -15,12 +15,12 @@ class HasResourceServer world api server m ct where
     ) => Proxy m -> Proxy ct -> Proxy world -> Proxy api -> Proxy server -> ServerT (Resourcify api ct) m
 
 instance {-# OVERLAPPABLE #-}
-  ( HasResourceServer world a aServerApi m ct
-  , HasResourceServer world b bServerApi m ct
-  ) => HasResourceServer world (a :<|> b) (aServerApi :<|> bServerApi) m ct where
+  ( HasResourceServer world a aServer m ct
+  , HasResourceServer world b bServer m ct
+  ) => HasResourceServer world (a :<|> b) (aServer :<|> bServer) m ct where
   getResourceServer m ct world _ _ =
-         getResourceServer m ct world (Proxy @a) (Proxy @aServerApi)
-    :<|> getResourceServer m ct world (Proxy @b) (Proxy @bServerApi)
+         getResourceServer m ct world (Proxy @a) (Proxy @aServer)
+    :<|> getResourceServer m ct world (Proxy @b) (Proxy @bServer)
 
 instance
   ( Monad m
