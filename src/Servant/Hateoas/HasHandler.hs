@@ -17,6 +17,7 @@ instance {-# OVERLAPPABLE #-} (HasHandler a, HasHandler b) => HasHandler (a :<|>
   getHandler _ = getHandler (Proxy @a) :<|> getHandler (Proxy @b)
 
 -- TODO: Instances like this for all other combinators that do not change the arity of the resulting handler-function
+--       Instances for default handlers: EmptyAPI, ...
 instance {-# OVERLAPPABLE #-} HasHandler b => HasHandler ((a :: Symbol) :> b) where
   getHandler _ = getHandler (Proxy @b)
 
@@ -37,14 +38,8 @@ instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x
     where
       plainHandler = getHandler api
 
-type family MkHandlerType api a where
-  MkHandlerType api a = HandlerType (HandlerArgs api) a
-
-type family HandlerArgs api :: [Type] where
-  HandlerArgs (Capture sym a :> b) = a ': HandlerArgs b
-  HandlerArgs (a :> b)             = HandlerArgs b
-  HandlerArgs (Verb m s cts a)     = '[]
-
-type family HandlerType (args :: [Type]) a :: Type where
-  HandlerType '[]       a = Handler a
-  HandlerType (x ': xs) a = x -> HandlerType xs a
+instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
+  => MkResourcy world api ((~) (p -> q -> r -> Handler x)) ((~) (p -> q -> r -> Handler (HALResource x))) where
+  mkResource _ _ _ api p q r = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q r
+    where
+      plainHandler = getHandler api
