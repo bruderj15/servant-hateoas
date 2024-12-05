@@ -7,7 +7,6 @@ import Servant
 import Servant.Hateoas.Rewrite
 import Servant.Hateoas.Resource
 import Servant.Hateoas.ContentType.HAL
-import Data.Kind
 import GHC.TypeLits
 
 class HasHandler api where
@@ -20,6 +19,9 @@ instance {-# OVERLAPPABLE #-} (HasHandler a, HasHandler b) => HasHandler (a :<|>
 --       Instances for default handlers: EmptyAPI, ...
 instance {-# OVERLAPPABLE #-} HasHandler b => HasHandler ((a :: Symbol) :> b) where
   getHandler _ = getHandler (Proxy @b)
+
+instance HasHandler EmptyAPI where
+  getHandler _ = emptyServer
 
 class MkResourcy world api serverApi serverResourceApi where
   mkResource ::
