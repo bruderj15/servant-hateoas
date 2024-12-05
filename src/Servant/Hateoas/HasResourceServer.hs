@@ -8,14 +8,12 @@ import Servant.Hateoas.Resource
 import Servant.Hateoas.HasHandler
 import Servant.Hateoas.ContentType.HAL
 
--- TODO: We could get rid of @serverResourceApi@ by rewriting @serverApi@ and asserting:
--- @ServerT (Resourcify api (HAL JSON)) m ~ ~ rewrittenServerApi@
-class HasResourceServer world api serverApi serverResourceApi where
+class HasResourceServer world api server resourceServer where
   getResourceServer ::
     ( Monad m
-    , ServerT api m ~ serverApi
-    , ServerT (Resourcify api (HAL JSON)) m ~ serverResourceApi
-    ) => Proxy m -> Proxy world -> Proxy api -> Proxy serverApi -> Proxy serverResourceApi -> ServerT (Resourcify api (HAL JSON)) m
+    , ServerT api m ~ server
+    , ServerT (Resourcify api (HAL JSON)) m ~ resourceServer
+    ) => Proxy m -> Proxy world -> Proxy api -> Proxy server -> Proxy resourceServer -> ServerT (Resourcify api (HAL JSON)) m
 
 instance {-# OVERLAPPABLE #-}
   ( HasResourceServer world a aServerApi aServerResourceApi
