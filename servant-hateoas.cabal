@@ -32,6 +32,7 @@ library
                        , Servant.Hateoas.Rewrite
                        , Servant.Hateoas.Resource
                        , Servant.Hateoas.HasHandler
+                       , Servant.Hateoas.HasResourceServer
                        , Servant.Hateoas.ContentType.HAL
                        , Servant.Hateoas.ContentType.Collection
 

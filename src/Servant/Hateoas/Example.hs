@@ -37,7 +37,7 @@ userApiHandler :: Server UserApi
 userApiHandler = getHandler (Proxy @UserApi)
 
 resourciyfiedUserApi :: Server (Resourcify UserApi (HAL JSON))
-resourciyfiedUserApi = mkResource (Proxy @CompleteApi) (Proxy @UserApi) (Proxy @(Server UserApi)) (Proxy @(Server (Resourcify UserApi (HAL JSON))))
+resourciyfiedUserApi = getResourceServer (Proxy @CompleteApi) (Proxy @UserApi) (Proxy @(Server UserApi)) (Proxy @(Server (Resourcify UserApi (HAL JSON))))
 
 instance Related User where
   type IdSelName User = "usrId"
