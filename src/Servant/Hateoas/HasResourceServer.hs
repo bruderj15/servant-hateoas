@@ -8,6 +8,8 @@ import Servant.Hateoas.Resource
 import Servant.Hateoas.HasHandler
 import Servant.Hateoas.ContentType.HAL
 
+-- TODO: We could get rid of @serverResourceApi@ by rewriting @serverApi@ and asserting:
+-- @ServerT (Resourcify api (HAL JSON)) m ~ ~ rewrittenServerApi@
 class HasResourceServer world api serverApi serverResourceApi where
   getResourceServer ::
     ( Monad m
