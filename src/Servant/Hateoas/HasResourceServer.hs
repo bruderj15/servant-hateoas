@@ -12,15 +12,16 @@ class HasResourceServer world api serverApi serverResourceApi where
   getResourceServer ::
     ( Monad m
     , ServerT api m ~ serverApi
-    , serverResourceApi ~ (ServerT (Resourcify api (HAL JSON)) m)
+    , ServerT (Resourcify api (HAL JSON)) m ~ serverResourceApi
     ) => Proxy m -> Proxy world -> Proxy api -> Proxy serverApi -> Proxy serverResourceApi -> ServerT (Resourcify api (HAL JSON)) m
 
 instance {-# OVERLAPPABLE #-}
   ( HasResourceServer world a aServerApi aServerResourceApi
   , HasResourceServer world b bServerApi bServerResourceApi
   ) => HasResourceServer world (a :<|> b) (aServerApi :<|> bServerApi) (aServerResourceApi :<|> bServerResourceApi) where
-  getResourceServer m _ _ _ _ = getResourceServer m (Proxy @world) (Proxy @a) (Proxy @aServerApi) (Proxy @aServerResourceApi)
-                           :<|> getResourceServer m (Proxy @world) (Proxy @b) (Proxy @bServerApi) (Proxy @bServerResourceApi)
+  getResourceServer m _ _ _ _ =
+         getResourceServer m (Proxy @world) (Proxy @a) (Proxy @aServerApi) (Proxy @aServerResourceApi)
+    :<|> getResourceServer m (Proxy @world) (Proxy @b) (Proxy @bServerApi) (Proxy @bServerResourceApi)
 
 -- TODO: There surely is a hack for the instances with differing arity here.
 -- Probably an instance for (a -> b) where b also has an instance...?
