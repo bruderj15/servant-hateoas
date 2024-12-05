@@ -1,9 +1,11 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Servant.Hateoas.Example where
 
 import Servant.Hateoas
+import Servant.Hateoas.Rewrite
 import Servant
 import Data.Aeson
 import GHC.Generics
@@ -19,16 +21,28 @@ data Address = Address { addrId :: Int, street :: String, number :: Int}
 type CompleteApi = AddressApi :<|> UserApi
 
 type AddressApi = AddressGetOne
-type AddressGetOne = "address" :> Capture "id" Int :> Get '[HAL JSON] (HALResource Address)
+type AddressGetOne = "address" :> Capture "id" Int :> Get '[JSON] Address
 
 type UserApi = UserGetOne :<|> UserGetAll
-type UserGetOne = "user" :> Capture "id" Int :> Get '[HAL JSON] (HALResource User)
-type UserGetAll = "user" :> Get '[Collection JSON] (CollectionResource User)
+type UserGetOne = "user" :> Capture "id" Int :> Get '[JSON] User
+type UserGetAll = "user" :> Get '[JSON] [User]
+
+instance HasHandler UserGetOne where
+  getHandler _ = \uId -> return (User uId 1 1000)
+
+instance HasHandler UserGetAll where
+  getHandler _ = return [User 1 1 1000, User 2 1 2000]
+
+userApiHandler :: Server UserApi
+userApiHandler = getHandler (Proxy @UserApi)
+
+-- resourciyfiedUserApi :: Server (Resourcify UserApi (HAL JSON))
+-- resourciyfiedUserApi = mkResource (Proxy @CompleteApi) (Proxy @UserApi)
 
 instance Related User where
   type IdSelName User = "usrId"
-  type GetOneApi User = UserGetOne
+  type GetOneApi User = Resourcify UserGetOne (HAL JSON)
   type CollectionName User = "users"
   type Relations User =
-    '[ 'HRel "address" "addressId" AddressGetOne
+    '[ 'HRel "address" "addressId" (Resourcify AddressGetOne (HAL JSON))
      ]

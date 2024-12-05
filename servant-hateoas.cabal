@@ -31,6 +31,7 @@ library
     exposed-modules:     Servant.Hateoas
                        , Servant.Hateoas.Rewrite
                        , Servant.Hateoas.Resource
+                       , Servant.Hateoas.HasHandler
                        , Servant.Hateoas.ContentType.HAL
                        , Servant.Hateoas.ContentType.Collection
 
