@@ -10,35 +10,36 @@ import Servant.Hateoas.ContentType.HAL
 
 class HasResourceServer world api serverApi serverResourceApi where
   getResourceServer ::
-    (Server api ~ serverApi
-    , serverResourceApi ~ (Server (Resourcify api (HAL JSON)))
-    ) => Proxy world -> Proxy api -> Proxy serverApi -> Proxy serverResourceApi -> Server (Resourcify api (HAL JSON))
+    ( Monad m
+    , ServerT api m ~ serverApi
+    , serverResourceApi ~ (ServerT (Resourcify api (HAL JSON)) m)
+    ) => Proxy m -> Proxy world -> Proxy api -> Proxy serverApi -> Proxy serverResourceApi -> ServerT (Resourcify api (HAL JSON)) m
 
 instance {-# OVERLAPPABLE #-}
   ( HasResourceServer world a aServerApi aServerResourceApi
-    , HasResourceServer world b bServerApi bServerResourceApi
+  , HasResourceServer world b bServerApi bServerResourceApi
   ) => HasResourceServer world (a :<|> b) (aServerApi :<|> bServerApi) (aServerResourceApi :<|> bServerResourceApi) where
-  getResourceServer _ _ _ _ = getResourceServer (Proxy @world) (Proxy @a) (Proxy @aServerApi) (Proxy @aServerResourceApi)
-                  :<|> getResourceServer (Proxy @world) (Proxy @b) (Proxy @bServerApi) (Proxy @bServerResourceApi)
+  getResourceServer m _ _ _ _ = getResourceServer m (Proxy @world) (Proxy @a) (Proxy @aServerApi) (Proxy @aServerResourceApi)
+                           :<|> getResourceServer m (Proxy @world) (Proxy @b) (Proxy @bServerApi) (Proxy @bServerResourceApi)
 
-instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
-  => HasResourceServer world api (Handler x) (Handler (HALResource x)) where
-  getResourceServer _ api _ _ = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ getHandler api
+instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
+  => HasResourceServer world api (m x) (m (HALResource x)) where
+  getResourceServer m _ api _ _ = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ getHandler m api
 
-instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
-  => HasResourceServer world api (p -> Handler x) (p -> Handler (HALResource x)) where
-  getResourceServer _ api _ _ = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) . plainHandler
+instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
+  => HasResourceServer world api (p -> m x) (p -> m (HALResource x)) where
+  getResourceServer m _ api _ _ = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) . plainHandler
     where
-      plainHandler = getHandler api
+      plainHandler = getHandler m api
 
-instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
-  => HasResourceServer world api (p -> q -> Handler x) (p -> q -> Handler (HALResource x)) where
-  getResourceServer _ api _ _ p q = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q
+instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
+  => HasResourceServer world api (p -> q -> m x) (p -> q -> m (HALResource x)) where
+  getResourceServer m _ api _ _ p q = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q
     where
-      plainHandler = getHandler api
+      plainHandler = getHandler m api
 
-instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
-  => HasResourceServer world api (p -> q -> r -> Handler x) (p -> q -> r -> Handler (HALResource x)) where
-  getResourceServer _ api _ _ p q r = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q r
+instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
+  => HasResourceServer world api (p -> q -> r -> m x) (p -> q -> r -> m (HALResource x)) where
+  getResourceServer m _ api _ _ p q r = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q r
     where
-      plainHandler = getHandler api
+      plainHandler = getHandler m api

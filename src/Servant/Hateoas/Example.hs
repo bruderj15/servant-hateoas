@@ -28,16 +28,16 @@ type UserGetOne = "user" :> Capture "id" Int :> Get '[JSON] User
 type UserGetAll = "user" :> Get '[JSON] [User]
 
 instance HasHandler UserGetOne where
-  getHandler _ = \uId -> return (User uId 1 1000)
+  getHandler _ _ = \uId -> return (User uId 1 1000)
 
 instance HasHandler UserGetAll where
-  getHandler _ = return [User 1 1 1000, User 2 1 2000]
+  getHandler _ _ = return [User 1 1 1000, User 2 1 2000]
 
 userApiHandler :: Server UserApi
-userApiHandler = getHandler (Proxy @UserApi)
+userApiHandler = getHandler (Proxy @Handler) (Proxy @UserApi)
 
 resourciyfiedUserApi :: Server (Resourcify UserApi (HAL JSON))
-resourciyfiedUserApi = getResourceServer (Proxy @CompleteApi) (Proxy @UserApi) (Proxy @(Server UserApi)) (Proxy @(Server (Resourcify UserApi (HAL JSON))))
+resourciyfiedUserApi = getResourceServer (Proxy @Handler) (Proxy @CompleteApi) (Proxy @UserApi) (Proxy @(Server UserApi)) (Proxy @(Server (Resourcify UserApi (HAL JSON))))
 
 instance Related User where
   type IdSelName User = "usrId"
