@@ -22,6 +22,8 @@ instance {-# OVERLAPPABLE #-}
   getResourceServer m _ _ _ _ = getResourceServer m (Proxy @world) (Proxy @a) (Proxy @aServerApi) (Proxy @aServerResourceApi)
                            :<|> getResourceServer m (Proxy @world) (Proxy @b) (Proxy @bServerApi) (Proxy @bServerResourceApi)
 
+-- TODO: There surely is a hack for the instances with differing arity here.
+-- Probably an instance for (a -> b) where b also has an instance...?
 instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
   => HasResourceServer world api (m x) (m (HALResource x)) where
   getResourceServer m _ api _ _ = toResource @(Resourcify world (HAL JSON)) @HALResource <$> getHandler m api
