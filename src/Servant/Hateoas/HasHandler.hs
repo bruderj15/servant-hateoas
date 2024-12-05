@@ -35,8 +35,14 @@ instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x
   mkResource _ _ _ = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) . getHandler
 
 instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
-  => MkResourcy world api (t -> Handler x) (t -> Handler (HALResource x)) where
+  => MkResourcy world api (p -> Handler x) (p -> Handler (HALResource x)) where
   mkResource _ _ _ api = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) . plainHandler
+    where
+      plainHandler = getHandler api
+
+instance (HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
+  => MkResourcy world api (p -> q -> Handler x) (p -> q -> Handler (HALResource x)) where
+  mkResource _ _ _ api p q = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q
     where
       plainHandler = getHandler api
 
