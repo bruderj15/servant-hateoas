@@ -23,3 +23,11 @@ type family Resourcify api ct where
   Resourcify (a :> b) ct             = a :> Resourcify b ct
   Resourcify (Verb m s _ a) ct       = Verb m s '[ct] (MkResource ct a)
   Resourcify a _                     = a
+
+-- Given a @ServerT api m@ and some @ct@ we want a @ServerT (Resourcify api ct) m@.
+-- Current solution is a little bit hacky, but it works as long as @m@ is not nested.
+type family ResourcifyServer server ct m where
+  ResourcifyServer (a :<|> b) ct m = ResourcifyServer a ct m :<|> ResourcifyServer b ct m
+  ResourcifyServer (a -> b)   ct m = a -> ResourcifyServer b ct m
+  ResourcifyServer (m a)      ct m = m (MkResource ct a)
+  ResourcifyServer (f a)      ct m = f (ResourcifyServer a ct m)
