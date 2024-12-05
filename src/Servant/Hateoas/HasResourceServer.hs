@@ -24,22 +24,22 @@ instance {-# OVERLAPPABLE #-}
 
 instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
   => HasResourceServer world api (m x) (m (HALResource x)) where
-  getResourceServer m _ api _ _ = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ getHandler m api
+  getResourceServer m _ api _ _ = toResource @(Resourcify world (HAL JSON)) @HALResource <$> getHandler m api
 
 instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
   => HasResourceServer world api (p -> m x) (p -> m (HALResource x)) where
-  getResourceServer m _ api _ _ = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) . plainHandler
+  getResourceServer m _ api _ _ p = toResource @(Resourcify world (HAL JSON)) @HALResource <$> plainHandler p
     where
       plainHandler = getHandler m api
 
 instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
   => HasResourceServer world api (p -> q -> m x) (p -> q -> m (HALResource x)) where
-  getResourceServer m _ api _ _ p q = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q
+  getResourceServer m _ api _ _ p q = toResource @(Resourcify world (HAL JSON)) @HALResource <$> plainHandler p q
     where
       plainHandler = getHandler m api
 
 instance (Monad m, HasHandler api, ToResource (Resourcify world (HAL JSON)) HALResource x)
   => HasResourceServer world api (p -> q -> r -> m x) (p -> q -> r -> m (HALResource x)) where
-  getResourceServer m _ api _ _ p q r = fmap (toResource @(Resourcify world (HAL JSON)) @HALResource) $ plainHandler p q r
+  getResourceServer m _ api _ _ p q r = toResource @(Resourcify world (HAL JSON)) @HALResource <$> plainHandler p q r
     where
       plainHandler = getHandler m api
