@@ -35,6 +35,4 @@ instance
   , HasResourceServer world api tail m ct
   , ResourcifyServer tail ct m ~ ResourcifyServer tail ct m
   ) => HasResourceServer world api (p -> tail) m ct where
-  getResourceServer m ct world api arity x = plainHandler x
-    where
-      plainHandler = getResourceServer m ct world api arity
+  getResourceServer = getResourceServer
