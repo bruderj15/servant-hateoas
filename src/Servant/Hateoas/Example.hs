@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Servant.Hateoas.Example where
 
@@ -14,15 +13,6 @@ data User = User { usrId :: Int, addressId :: Int, income :: Double }
   deriving stock (Generic, Show, Eq, Ord)
   deriving anyclass (ToJSON, ToResource res)
 
-data Address = Address { addrId :: Int, street :: String, number :: Int}
-  deriving stock (Generic, Show, Eq, Ord)
-  deriving anyclass ToJSON
-
-type CompleteApi = AddressApi :<|> UserApi
-
-type AddressApi = AddressGetOne
-type AddressGetOne = "address" :> Capture "id" Int :> Get '[JSON] Address
-
 type UserApi = UserGetOne :<|> UserGetAll
 type UserGetOne = "user" :> Capture "id" Int :> Get '[JSON] User
 type UserGetAll = "user" :> Get '[JSON] [User]
@@ -33,8 +23,8 @@ instance HasHandler UserGetOne where
 instance HasHandler UserGetAll where
   getHandler _ _ = return [User 1 1 1000, User 2 1 2000]
 
-userApiHandler :: Server UserApi
-userApiHandler = getHandler (Proxy @Handler) (Proxy @UserApi)
+userApiServer :: Server UserApi
+userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 
-resourciyfiedUserApi :: Server (Resourcify UserApi (HAL JSON))
-resourciyfiedUserApi = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi) (Proxy @(Server UserApi))
+hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
+hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi) (Proxy @(Server UserApi))
