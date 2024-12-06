@@ -55,3 +55,35 @@ instance
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
   ) => HasResourceServer world api (q -> r -> s -> m p) m ct where
   getResourceServer m _ _ api _ q r s = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s
+
+instance
+  ( MonadIO m
+  , HasHandler api
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (q -> r -> s -> t -> m p) m ct where
+  getResourceServer m _ _ api _ q r s t = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t
+
+instance
+  ( MonadIO m
+  , HasHandler api
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (q -> r -> s -> t -> u -> m p) m ct where
+  getResourceServer m _ _ api _ q r s t u = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t u
+
+instance
+  ( MonadIO m
+  , HasHandler api
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (q -> r -> s -> t -> u -> v -> m p) m ct where
+  getResourceServer m _ _ api _ q r s t u v = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t u v
+
+instance
+  ( MonadIO m
+  , HasHandler api
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (q -> r -> s -> t -> u -> v -> w -> m p) m ct where
+  getResourceServer m _ _ api _ q r s t u v w = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t u v w
