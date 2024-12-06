@@ -7,10 +7,11 @@ import Servant
 import Servant.Hateoas.Rewrite
 import Servant.Hateoas.Resource
 import Servant.Hateoas.HasHandler
+import Control.Monad.IO.Class
 
 class HasResourceServer world api server m ct where
   getResourceServer ::
-    ( Monad m
+    ( MonadIO m
     , ServerT api m ~ server
     , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
     ) => Proxy m -> Proxy ct -> Proxy world -> Proxy api -> Proxy server -> ServerT (Resourcify api ct) m
@@ -24,7 +25,7 @@ instance {-# OVERLAPPABLE #-}
     :<|> getResourceServer m ct world (Proxy @b) (Proxy @bServer)
 
 instance
-  ( Monad m
+  ( MonadIO m
   , HasHandler api
   , ToResource (Resourcify world ct) (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
@@ -32,7 +33,7 @@ instance
   getResourceServer m _ _ api _ = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api
 
 instance
-  ( Monad m
+  ( MonadIO m
   , HasHandler api
   , ToResource (Resourcify world ct) (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
@@ -40,7 +41,7 @@ instance
   getResourceServer m _ _ api _ q = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q
 
 instance
-  ( Monad m
+  ( MonadIO m
   , HasHandler api
   , ToResource (Resourcify world ct) (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
@@ -48,7 +49,7 @@ instance
   getResourceServer m _ _ api _ q r = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r
 
 instance
-  ( Monad m
+  ( MonadIO m
   , HasHandler api
   , ToResource (Resourcify world ct) (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)

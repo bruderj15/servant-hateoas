@@ -1,10 +1,11 @@
 module Servant.Hateoas.HasHandler where
 
 import Servant
+import Control.Monad.IO.Class
 import GHC.TypeLits
 
 class HasHandler api where
-  getHandler :: Monad m => Proxy m -> Proxy api -> ServerT api m
+  getHandler :: MonadIO m => Proxy m -> Proxy api -> ServerT api m
 
 instance {-# OVERLAPPABLE #-} (HasHandler a, HasHandler b) => HasHandler (a :<|> b) where
   getHandler m _ = getHandler m (Proxy @a) :<|> getHandler m (Proxy @b)
