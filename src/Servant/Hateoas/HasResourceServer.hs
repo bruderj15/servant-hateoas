@@ -1,5 +1,4 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 
 module Servant.Hateoas.HasResourceServer where
 
