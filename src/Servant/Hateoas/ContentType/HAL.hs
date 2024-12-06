@@ -62,4 +62,4 @@ instance {-# OVERLAPPING #-} ToJSON a => ToJSON (HALResource [a]) where
             ]
 
 instance EmbeddingResource HALResource where
-  embed e (HALResource r ls es) = HALResource r ls $ fmap (\res -> Some1 $ HALResource res [] []) e : es
+  embed e (HALResource r ls es) = HALResource r ls $ fmap Some1 e : es
