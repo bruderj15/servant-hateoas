@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 module Servant.Hateoas.HasResourceServer where
 
@@ -32,7 +33,24 @@ instance
 
 instance
   ( Monad m
-  , HasResourceServer world api tail m ct
-  , ResourcifyServer tail ct m ~ ResourcifyServer tail ct m
-  ) => HasResourceServer world api (p -> tail) m ct where
-  getResourceServer = getResourceServer
+  , HasHandler api
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (q -> m p) m ct where
+  getResourceServer m _ _ api _ q = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q
+
+instance
+  ( Monad m
+  , HasHandler api
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (q -> r -> m p) m ct where
+  getResourceServer m _ _ api _ q r = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r
+
+instance
+  ( Monad m
+  , HasHandler api
+  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
+  ) => HasResourceServer world api (q -> r -> s -> m p) m ct where
+  getResourceServer m _ _ api _ q r s = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s
