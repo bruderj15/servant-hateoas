@@ -26,5 +26,11 @@ instance HasHandler UserGetAll where
 userApiServer :: Server UserApi
 userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 
+-- Custom instance for @ToResource@
+-- instance ToResource HALResource User where
+--   toResource _ u = HALResource u [("self", mkLink $ usrId u)] []
+--     where
+--       mkLink = safeLink (Proxy @UserApi) (Proxy @UserGetOne)
+
 hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
 hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi) (Proxy @(Server UserApi))
