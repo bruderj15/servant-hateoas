@@ -8,81 +8,81 @@ import Servant.Hateoas.Resource
 import Servant.Hateoas.HasHandler
 import Control.Monad.IO.Class
 
-class HasResourceServer world api server m ct where
+class HasResourceServer api server m ct where
   getResourceServer ::
     ( MonadIO m
     , ServerT api m ~ server
     , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
-    ) => Proxy m -> Proxy ct -> Proxy world -> Proxy api -> Proxy server -> ServerT (Resourcify api ct) m
+    ) => Proxy m -> Proxy ct -> Proxy api -> Proxy server -> ServerT (Resourcify api ct) m
 
 instance {-# OVERLAPPABLE #-}
-  ( HasResourceServer world a aServer m ct
-  , HasResourceServer world b bServer m ct
-  ) => HasResourceServer world (a :<|> b) (aServer :<|> bServer) m ct where
-  getResourceServer m ct world _ _ =
-         getResourceServer m ct world (Proxy @a) (Proxy @aServer)
-    :<|> getResourceServer m ct world (Proxy @b) (Proxy @bServer)
+  ( HasResourceServer a aServer m ct
+  , HasResourceServer b bServer m ct
+  ) => HasResourceServer (a :<|> b) (aServer :<|> bServer) m ct where
+  getResourceServer m ct _ _ =
+         getResourceServer m ct (Proxy @a) (Proxy @aServer)
+    :<|> getResourceServer m ct (Proxy @b) (Proxy @bServer)
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (m p) m ct where
-  getResourceServer m _ _ api _ = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api
+  ) => HasResourceServer api (m p) m ct where
+  getResourceServer m _ api _ = toResource (Proxy @(MkResource ct)) <$> getHandler m api
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (q -> m p) m ct where
-  getResourceServer m _ _ api _ q = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q
+  ) => HasResourceServer api (q -> m p) m ct where
+  getResourceServer m _ api _ q = toResource (Proxy @(MkResource ct)) <$> getHandler m api q
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (q -> r -> m p) m ct where
-  getResourceServer m _ _ api _ q r = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r
+  ) => HasResourceServer api (q -> r -> m p) m ct where
+  getResourceServer m _ api _ q r = toResource (Proxy @(MkResource ct)) <$> getHandler m api q r
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (q -> r -> s -> m p) m ct where
-  getResourceServer m _ _ api _ q r s = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s
+  ) => HasResourceServer api (q -> r -> s -> m p) m ct where
+  getResourceServer m _ api _ q r s = toResource (Proxy @(MkResource ct)) <$> getHandler m api q r s
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (q -> r -> s -> t -> m p) m ct where
-  getResourceServer m _ _ api _ q r s t = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t
+  ) => HasResourceServer api (q -> r -> s -> t -> m p) m ct where
+  getResourceServer m _ api _ q r s t = toResource (Proxy @(MkResource ct)) <$> getHandler m api q r s t
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (q -> r -> s -> t -> u -> m p) m ct where
-  getResourceServer m _ _ api _ q r s t u = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t u
+  ) => HasResourceServer api (q -> r -> s -> t -> u -> m p) m ct where
+  getResourceServer m _ api _ q r s t u = toResource (Proxy @(MkResource ct)) <$> getHandler m api q r s t u
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (q -> r -> s -> t -> u -> v -> m p) m ct where
-  getResourceServer m _ _ api _ q r s t u v = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t u v
+  ) => HasResourceServer api (q -> r -> s -> t -> u -> v -> m p) m ct where
+  getResourceServer m _ api _ q r s t u v = toResource (Proxy @(MkResource ct)) <$> getHandler m api q r s t u v
 
 instance
   ( MonadIO m
   , HasHandler api
-  , ToResource (Resourcify world ct) (MkResource ct) p
+  , ToResource (MkResource ct) p
   , ResourcifyServer (m p) ct m ~ m ((MkResource ct) p)
-  ) => HasResourceServer world api (q -> r -> s -> t -> u -> v -> w -> m p) m ct where
-  getResourceServer m _ _ api _ q r s t u v w = toResource @(Resourcify world ct) @(MkResource ct) <$> getHandler m api q r s t u v w
+  ) => HasResourceServer api (q -> r -> s -> t -> u -> v -> w -> m p) m ct where
+  getResourceServer m _ api _ q r s t u v w = toResource (Proxy @(MkResource ct)) <$> getHandler m api q r s t u v w

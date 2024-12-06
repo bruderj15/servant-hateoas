@@ -15,13 +15,10 @@ import Servant.Links
 import qualified Data.Foldable as Foldable
 import Data.Some.Constraint
 import Data.Kind
-import Data.Proxy
 import Data.Aeson
 import Data.Aeson.KeyMap (singleton)
 import GHC.Exts
-import GHC.TypeLits
 import GHC.Generics
-import GHC.Records
 
 -- | Data-Kind representing Content-Types of Hypertext Application Language (HAL).
 --
@@ -35,9 +32,10 @@ data HALResource a = HALResource
   { resource :: a                                       -- ^ Wrapped resource
   , links    :: [(String, Link)]                        -- ^ Pairs @(rel, link)@ for relations
   , embedded :: [(String, SomeF HALResource ToJSON)]    -- ^ Pairs @(rel, resource)@ for embedded resources
-  } deriving (Generic)
+  } deriving (Generic, Functor)
 
 instance Resource HALResource where
+  wrap x = HALResource x [] []
   addLink l (HALResource r ls es) = HALResource r (l:ls) es
 
 instance Accept (HAL JSON) where
@@ -54,32 +52,14 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
       ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
       es' = object [fromString name .= toJSON e | (name, (Some1 e)) <- es]
 
-instance {-# OVERLAPPING #-} (ToJSON a, Related a, KnownSymbol (CollectionName a)) => ToJSON (HALResource [a]) where
+instance {-# OVERLAPPING #-} ToJSON a => ToJSON (HALResource [a]) where
   toJSON (HALResource xs ls es) = object ["_links" .= ls', "_embedded" .= object (exs <> es')]
     where
       ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
       es' = fmap (\(eName, (Some1 e)) -> fromString eName .= toJSON e) es
-      exs = [ fromString (symbolVal (Proxy @(CollectionName a)))
+      exs = [ "items"
               .= (Array $ Foldable.foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
             ]
 
 instance EmbeddingResource HALResource where
   embed e (HALResource r ls es) = HALResource r ls $ fmap (\res -> Some1 $ HALResource res [] []) e : es
-
-instance {-# OVERLAPPABLE #-}
-  ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
-  , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
-  , BuildRels api (Relations a) a
-  , Resource HALResource
-  ) => ToResource api HALResource a where
-  toResource x = HALResource x (defaultLinks (Proxy @api) x) mempty
-
-instance {-# OVERLAPPING #-}
-  ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
-  , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
-  , BuildRels api (Relations a) a
-  , Resource HALResource
-  ) => ToResource api HALResource [a] where
-  toResource xs = HALResource xs ls mempty
-    where
-      ls = concatMap (defaultLinks (Proxy @api)) xs

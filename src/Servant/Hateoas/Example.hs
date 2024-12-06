@@ -12,7 +12,7 @@ import GHC.Generics
 
 data User = User { usrId :: Int, addressId :: Int, income :: Double }
   deriving stock (Generic, Show, Eq, Ord)
-  deriving anyclass ToJSON
+  deriving anyclass (ToJSON, ToResource res)
 
 data Address = Address { addrId :: Int, street :: String, number :: Int}
   deriving stock (Generic, Show, Eq, Ord)
@@ -37,12 +37,4 @@ userApiHandler :: Server UserApi
 userApiHandler = getHandler (Proxy @Handler) (Proxy @UserApi)
 
 resourciyfiedUserApi :: Server (Resourcify UserApi (HAL JSON))
-resourciyfiedUserApi = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @CompleteApi) (Proxy @UserApi) (Proxy @(Server UserApi))
-
-instance Related User where
-  type IdSelName User = "usrId"
-  type GetOneApi User = Resourcify UserGetOne (HAL JSON)
-  type CollectionName User = "users"
-  type Relations User =
-    '[ 'HRel "address" "addressId" (Resourcify AddressGetOne (HAL JSON))
-     ]
+resourciyfiedUserApi = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi) (Proxy @(Server UserApi))

@@ -17,9 +17,7 @@ import Servant.Links
 import qualified Data.Foldable as Foldable
 import Data.Kind
 import Data.Aeson
-import Data.Proxy
 import GHC.Exts
-import GHC.Records
 import GHC.Generics
 
 -- | Data-Kind representing Content-Types of HATEOAS collections.
@@ -34,18 +32,26 @@ data CollectionResource a = CollectionResource
   { href  :: Maybe Link                   -- ^ Link to the collection
   , items :: [CollectionItem a]           -- ^ All items in the collection
   , links :: [(String, Link)]             -- ^ Pairs @(rel, link)@ for relations
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Functor)
+
+instance Semigroup (CollectionResource a) where
+  (CollectionResource _ is ls) <> (CollectionResource _ is' ls') = CollectionResource Nothing (is <> is') (ls <> ls')
+
+instance Monoid (CollectionResource a) where
+  mempty = CollectionResource Nothing [] []
 
 -- | A single item inside a 'CollectionResource'.
 data CollectionItem a = CollectionItem
   { item :: a                             -- ^ Wrapped item
   , itemLinks :: [(String, Link)]         -- ^ Links for the wrapped item
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Functor)
 
 instance Resource CollectionResource where
+  wrap x = CollectionResource Nothing [wrap x] []
   addLink l (CollectionResource h r ls) = CollectionResource h r (l:ls)
 
 instance Resource CollectionItem where
+  wrap x = CollectionItem x []
   addLink l (CollectionItem i ls) = CollectionItem i (l:ls)
 
 instance Accept (Collection JSON) where
@@ -71,14 +77,3 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (CollectionResource a) where
 
 instance CollectingResource CollectionResource where
   collect i (CollectionResource mHref is ls) = CollectionResource mHref (CollectionItem i mempty : is) ls
-
-instance {-# OVERLAPPABLE #-}
-  ( Related a, HasField (IdSelName a) a id, IsElem (GetOneApi a) api
-  , HasLink (GetOneApi a), MkLink (GetOneApi a) Link ~ (id -> Link)
-  , BuildRels api (Relations a) a
-  , Resource CollectionResource
-  )
-  => ToCollection api CollectionResource a where
-  toCollection is = CollectionResource Nothing is' mempty
-    where
-      is' = Foldable.foldl' (\xs x -> CollectionItem x (defaultLinks (Proxy @api) x) : xs) mempty is
