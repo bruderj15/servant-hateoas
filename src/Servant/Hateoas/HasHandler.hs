@@ -10,8 +10,16 @@ class HasHandler api where
 instance {-# OVERLAPPABLE #-} (HasHandler a, HasHandler b) => HasHandler (a :<|> b) where
   getHandler m _ = getHandler m (Proxy @a) :<|> getHandler m (Proxy @b)
 
--- TODO: Instances like this for all other combinators that do not change the arity of the resulting handler-function
 instance {-# OVERLAPPABLE #-} HasHandler b => HasHandler ((a :: Symbol) :> b) where
+  getHandler m _ = getHandler m (Proxy @b)
+
+instance {-# OVERLAPPABLE #-} HasHandler b => HasHandler (Description sym :> b) where
+  getHandler m _ = getHandler m (Proxy @b)
+
+instance {-# OVERLAPPABLE #-} HasHandler b => HasHandler (Summary sym :> b) where
+  getHandler m _ = getHandler m (Proxy @b)
+
+instance {-# OVERLAPPABLE #-} HasHandler b => HasHandler (Fragment a :> b) where
   getHandler m _ = getHandler m (Proxy @b)
 
 instance HasHandler EmptyAPI where
