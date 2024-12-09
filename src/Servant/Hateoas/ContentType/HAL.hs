@@ -45,9 +45,7 @@ instance ToJSON a => MimeRender (HAL JSON) (HALResource a) where
   mimeRender _ = encode
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
-  toJSON (HALResource res ls es) = case toJSON res of
-    Object kvm -> Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> kvm
-    v -> v
+  toJSON (HALResource res ls es) = Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)
     where
       ls' = object [fromString rel .= object ["href" .= linkURI href] | (rel, href) <- ls]
       es' = object [fromString name .= toJSON e | (name, (Some1 e)) <- es]

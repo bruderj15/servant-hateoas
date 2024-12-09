@@ -1,7 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Servant.Hateoas.ContentType.Collection
 ( Collection
@@ -64,10 +61,11 @@ collectionLinks :: [(String, Link)] -> Value
 collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= linkURI l]) <> xs) mempty
 
 instance ToJSON a => ToJSON (CollectionItem a) where
-  toJSON (CollectionItem (toJSON -> Object m) ls) = object ["data" .= itemData, "links" .= collectionLinks ls]
+  toJSON (CollectionItem x ls) = object ["data" .= itemData, "links" .= collectionLinks ls]
     where
-      itemData = Array $ Foldable.foldl' (\xs (k, v) -> pure (object ["name" .= k, "value" .= v]) <> xs) mempty $ toList m
-  toJSON (CollectionItem (toJSON -> v) _) = v
+      itemData = Array
+        $ Foldable.foldl' (\xs (k, v) -> pure (object ["name" .= k, "value" .= v]) <> xs) mempty
+        $ case toJSON x of Object o -> toList o ; _ -> mempty
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (CollectionResource a) where
   toJSON (CollectionResource mHref is ls) = object ["collection" .= collection]
