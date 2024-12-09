@@ -29,6 +29,7 @@ library
     import:              warnings
 
     exposed-modules:     Servant.Hateoas
+                       , Servant.Hateoas.Layer
                        , Servant.Hateoas.Rewrite
                        , Servant.Hateoas.Resource
                        , Servant.Hateoas.HasHandler
