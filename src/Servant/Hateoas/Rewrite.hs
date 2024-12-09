@@ -52,12 +52,13 @@ type family HLayers api stand where
   HLayers (a :<|> b) (Bottom :> prefix :> Top) = HLayers a (Bottom :> prefix :> Top) ++ HLayers b (Bottom :> prefix :> Top)
   HLayers (a :> b)    Bottom                   = '[ 'HBranch  Bottom                   (FirstPath a Bottom) ] ++ HLayers b (Bottom           :> a :> Top)
   HLayers (a :> b)   (Bottom :> prefix :> Top) = '[ 'HBranch (Bottom :> prefix :> Top) (FirstPath a prefix) ] ++ HLayers b (Bottom :> prefix :> a :> Top)
-  --                                                                                     better would be^: (Bottom :> prefix), but this forces prefix :: Type
   HLayers _ _                                  = '[]
 
 -- Interpreting api as a tree returning the first layers of the tree
 type FirstPath :: p -> q -> [Type]
 type family FirstPath api prefix where
   FirstPath (a :<|> b) prefix = FirstPath a prefix ++ FirstPath b prefix
-  FirstPath (a :> _)   prefix = '[prefix :> a :> Top]
-  FirstPath a          prefix = '[prefix :> a :> Top]
+  FirstPath (a :> _)   Bottom = '[Bottom           :> a :> Top]
+  FirstPath (a :> _)   prefix = '[Bottom :> prefix :> a :> Top]
+  FirstPath a          Bottom = '[Bottom           :> a :> Top]
+  FirstPath a          prefix = '[Bottom :> prefix :> a :> Top]
