@@ -3,6 +3,7 @@
 module Servant.Hateoas.Layer where
 
 import Servant
+import Servant.Hateoas.Resource
 import Data.Kind
 import Control.Monad.IO.Class
 
@@ -24,23 +25,25 @@ type (++) xs ys = AppendList xs ys
 data Bottom
 data Top
 
+type GetHateoas ct = Get '[ct] (MkResource ct ())
+
 -- Creates all intermediate layers of the api and their immediate children
-type Layers :: p -> q -> [Layer]
-type family Layers api stand where
-  Layers (a :<|> b)  Bottom                   = Layers a Bottom ++ Layers b Bottom
-  Layers (a :<|> b) (Bottom :> prefix :> Top) = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
-  Layers (a :> b)    Bottom                   = '[ 'Layer  Bottom                   (FirstPath a Bottom) ] ++ Layers b (Bottom           :> a :> Top)
-  Layers (a :> b)   (Bottom :> prefix :> Top) = '[ 'Layer (Bottom :> prefix :> Top) (FirstPath a prefix) ] ++ Layers b (Bottom :> prefix :> a :> Top)
-  Layers _ _                                  = '[]
+type Layers :: p -> q -> Type -> [Layer]
+type family Layers api stand ct where
+  Layers (a :<|> b)  Bottom                   ct = Layers a Bottom ct ++ Layers b Bottom ct
+  Layers (a :<|> b) (Bottom :> prefix :> Top) ct = Layers a (Bottom :> prefix :> Top) ct ++ Layers b (Bottom :> prefix :> Top) ct
+  Layers (a :> b)    Bottom                   ct = '[ 'Layer           (GetHateoas ct) (FirstPath a Bottom ct) ] ++ Layers b (Bottom           :> a :> Top) ct
+  Layers (a :> b)   (Bottom :> prefix :> Top) ct = '[ 'Layer (prefix :> GetHateoas ct) (FirstPath a prefix ct) ] ++ Layers b (Bottom :> prefix :> a :> Top) ct
+  Layers _ _                                  ct = '[]
 
 -- Interpreting api as a tree returning the first layers of the tree
-type FirstPath :: p -> q -> [Type]
-type family FirstPath api prefix where
-  FirstPath (a :<|> b) prefix = FirstPath a prefix ++ FirstPath b prefix
-  FirstPath (a :> _)   Bottom = '[Bottom           :> a :> Top]
-  FirstPath (a :> _)   prefix = '[Bottom :> prefix :> a :> Top]
-  FirstPath a          Bottom = '[Bottom           :> a :> Top]
-  FirstPath a          prefix = '[Bottom :> prefix :> a :> Top]
+type FirstPath :: p -> q -> Type -> [Type]
+type family FirstPath api prefix ct where
+  FirstPath (a :<|> b) prefix ct = FirstPath a prefix ct ++ FirstPath b prefix ct
+  FirstPath (a :> _)   Bottom ct = '[          a :> GetHateoas ct]
+  FirstPath (a :> _)   prefix ct = '[prefix :> a :> GetHateoas ct]
+  FirstPath a          Bottom ct = '[          a :> GetHateoas ct]
+  FirstPath a          prefix ct = '[prefix :> a :> GetHateoas ct]
 
 class HasLayerServer (l :: Layer) server m ct where
   getLayerServer :: (MonadIO m, ServerT (NodeApi l) m ~ server)
