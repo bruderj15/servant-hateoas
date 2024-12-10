@@ -84,8 +84,6 @@ type family ReplaceHandler server replacement where
   ReplaceHandler (a -> b)    replacement = a -> ReplaceHandler b replacement
   ReplaceHandler _           replacement = replacement
 
-
-
 type BuildLayerLinks :: Layer -> Type -> Constraint
 class BuildLayerLinks l server where
   buildLayerLinks ::
@@ -132,3 +130,24 @@ instance
   buildLayerLinks _ server p = (symbolVal (Proxy @(RelName c)), mkLink p) : buildLayerLinks (Proxy @('Layer api cs)) server p
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
+
+type LayerApi :: [Layer] -> Type
+type family LayerApi ls where
+  LayerApi '[]       = EmptyAPI
+  LayerApi (l ': ls) = NodeApi l :<|> LayerApi ls
+
+type MkLayerServer :: (Type -> Type) -> Type -> [Layer] -> Constraint
+class MkLayerServer m ct ls where
+  mkLayerServer :: Proxy m -> Proxy ct -> Proxy ls -> ServerT (LayerApi ls) m
+
+instance MkLayerServer m ct '[] where
+  mkLayerServer _ _ _ = emptyServer
+
+instance
+  ( MkLayerServer m ct ls
+  , HasLayerServer l (ServerT (NodeApi l) m) m ct
+  , IsElem (NodeApi l) (NodeApi l)
+  , MonadIO m, HasLink (NodeApi l)
+  , BuildLayerLinks l (ServerT (NodeApi l) m)
+  ) => MkLayerServer m ct (l ': ls) where
+  mkLayerServer m ct _ = getLayerServer m ct (Proxy @l) (Proxy @(ServerT (NodeApi l) m)) :<|> mkLayerServer m ct (Proxy @ls)
