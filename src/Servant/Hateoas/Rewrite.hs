@@ -31,4 +31,4 @@ type family ResourcifyServer server ct m where
   ResourcifyServer (a :<|> b) ct m = ResourcifyServer a ct m :<|> ResourcifyServer b ct m
   ResourcifyServer (a -> b)   ct m = a -> ResourcifyServer b ct m
   ResourcifyServer (m a)      ct m = m (MkResource ct a)
-  ResourcifyServer (f a)      ct m = f (ResourcifyServer a ct m)
+  ResourcifyServer (f a)      ct m = f (ResourcifyServer a ct m) -- ??????????

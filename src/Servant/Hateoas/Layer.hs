@@ -46,32 +46,58 @@ type family FirstPath api prefix ct where
   FirstPath a          Bottom ct = '[          a :> GetHateoas ct]
   FirstPath a          prefix ct = '[prefix :> a :> GetHateoas ct]
 
+-- This seems highly similar to HasResourceServer if it was poly-kinded in the api
 type HasLayerServer :: Layer -> Type -> (Type -> Type) -> Type -> Constraint
 class HasLayerServer l server m ct where
-  getLayerServer :: (MonadIO m, ServerT (NodeApi l) m ~ server)
-    => Proxy m
-    -> Proxy ct
-    -> Proxy l
-    -> Proxy server
-    -> ServerT (NodeApi l) m
+  getLayerServer ::
+    ( MonadIO m
+    , HasLink (NodeApi l)
+    , IsElem (NodeApi l) (NodeApi l)
+    , BuildLayerLinks l server
+    , ServerT (NodeApi l) m ~ server
+    ) => Proxy m
+      -> Proxy ct
+      -> Proxy l
+      -> Proxy server
+      -> ServerT (NodeApi l) m
 
 instance
   ( res ~ MkResource ct
   , Resource res
-  , BuildLayerLinks ('Layer api cs)
+  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
   ) => HasLayerServer ('Layer api cs) (m (res ())) m ct where
-  getLayerServer _ _ l _ = return $ foldr addLink (wrap ()) $ buildLayerLinks l
-
-type BuildLayerLinks :: Layer -> Constraint
-class BuildLayerLinks l where
-  buildLayerLinks :: Proxy l -> [(String, Link)]
+  getLayerServer _ _ l server = return $ foldr addLink (wrap ()) $ buildLayerLinks l server
 
 instance
-  ( HasLink api
-  , IsElem api api
-  , MkLink api Link ~ Link
-  ) => BuildLayerLinks ('Layer api '[]) where
-  buildLayerLinks _ = [("self", self)]
+  ( res ~ MkResource ct
+  , Resource res
+  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
+  ) => HasLayerServer ('Layer api cs) (p -> m (res ())) m ct where
+  getLayerServer _ _ l server p = return $ foldr addLink (wrap ()) $ buildLayerLinks l server p
+
+type family RelName children :: Symbol where
+  RelName ((sym :: Symbol) :> m s ct a) = sym
+  RelName (Capture sym t   :> m s ct a) = sym
+
+type family ReplaceHandler server replacement where
+  ReplaceHandler (a :<|> b)  replacement = ReplaceHandler a replacement :<|> ReplaceHandler b replacement
+  ReplaceHandler (a -> b)    replacement = a -> ReplaceHandler b replacement
+  ReplaceHandler _           replacement = replacement
+
+
+
+type BuildLayerLinks :: Layer -> Type -> Constraint
+class BuildLayerLinks l server where
+  buildLayerLinks ::
+    ( HasLink (NodeApi l)
+    , IsElem (NodeApi l) (NodeApi l)
+    ) => Proxy l -> Proxy server -> ReplaceHandler server [(String, Link)]
+
+instance
+  ( MkLink api Link ~ Link
+  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
+  ) => BuildLayerLinks ('Layer api '[]) (m (res ())) where
+  buildLayerLinks _ _ = [("self", self)]
     where
       self = safeLink (Proxy @api) (Proxy @api)
 
@@ -79,13 +105,30 @@ instance
   ( HasLink c
   , IsElem c c
   , MkLink c Link ~ Link
-  , BuildLayerLinks ('Layer api cs)
+  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
+  , BuildLayerLinks ('Layer api cs) (m (res ()))
   , KnownSymbol (RelName c)
-  ) => BuildLayerLinks ('Layer api (c ': cs)) where
-  buildLayerLinks _ = (symbolVal (Proxy @(RelName c)), l) : buildLayerLinks (Proxy @('Layer api cs))
+  ) => BuildLayerLinks ('Layer api (c ': cs)) (m (res ())) where
+  buildLayerLinks _ server = (symbolVal (Proxy @(RelName c)), l) : buildLayerLinks (Proxy @('Layer api cs)) server
     where
       l = safeLink (Proxy @c) (Proxy @c)
 
-type family RelName children :: Symbol where
-  RelName ((sym :: Symbol) :> m s ct a) = sym
-  RelName (Capture sym t   :> m s ct a) = sym
+instance
+  ( MkLink api Link ~ (p -> Link)
+  , ReplaceHandler (p -> m (res ())) [(String, Link)] ~ (p -> [(String, Link)])
+  ) => BuildLayerLinks ('Layer api '[]) (p -> m (res ())) where
+  buildLayerLinks _ _ p = [("self", self p)]
+    where
+      self = safeLink (Proxy @api) (Proxy @api)
+
+instance
+  ( HasLink c
+  , IsElem c c
+  , MkLink c Link ~ (p -> Link)
+  , ReplaceHandler (p -> m (res ())) [(String, Link)] ~ (p -> [(String, Link)])
+  , BuildLayerLinks ('Layer api cs) (p -> m (res ()))
+  , KnownSymbol (RelName c)
+  ) => BuildLayerLinks ('Layer api (c ': cs)) (p -> m (res ())) where
+  buildLayerLinks _ server p = (symbolVal (Proxy @(RelName c)), mkLink p) : buildLayerLinks (Proxy @('Layer api cs)) server p
+    where
+      mkLink = safeLink (Proxy @c) (Proxy @c)
