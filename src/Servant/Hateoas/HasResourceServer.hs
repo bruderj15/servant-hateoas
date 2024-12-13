@@ -49,7 +49,7 @@ instance
   , Return server (IsFun server) ~ m a
   , Replace server (m (res a)) (IsFun server) ~ ResourcifyServer server ct m
   ) => HasResourceServer api m ct where
-  getResourceServer m _ api = fmap (toResource (Proxy @(MkResource ct))) ... getHandler m api
+  getResourceServer m _ api = fmap (toResource (Proxy @res)) ... getHandler m api
 
 instance {-# OVERLAPPING #-}
   ( l ~ 'Layer api cs

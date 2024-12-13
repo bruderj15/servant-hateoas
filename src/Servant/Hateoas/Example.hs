@@ -36,7 +36,7 @@ userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 -- hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
 hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi)
 
-hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers (Normalize UserA) Bottom))
+hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers (Normalize UserApi) Bottom))
 
 -- testApp :: Application
 -- testApp = serve (Proxy @(LayerApi (Layers UserApi Bottom (HAL JSON)))) hateoasUserApiLayerServer

@@ -8,6 +8,7 @@ import Servant.Hateoas.Resource
 import Data.Kind
 import Data.Aeson
 import Data.Coerce
+import Control.DotDotDot
 import GHC.TypeLits
 
 data Layer = Layer
@@ -87,12 +88,13 @@ class BuildLayerLinks l server where
     ) => Proxy l -> Proxy server -> ReplaceHandler server [(String, Link)]
 
 instance
-  ( MkLink api Link ~ Link
-  , ReplaceHandler (m (res Intermediate)) [(String, Link)] ~ [(String, Link)]
-  ) => BuildLayerLinks ('Layer api '[]) (m (res Intermediate)) where
-  buildLayerLinks _ _ = [("self", self)]
+  ( mkSelf ~ MkLink api Link
+  , DotDotDot mkSelf (IsFun mkSelf)
+  , Replace mkSelf [(String, Return mkSelf (IsFun mkSelf))] (IsFun mkSelf) ~ ReplaceHandler server [(String, Link)]
+  ) => BuildLayerLinks ('Layer api '[]) server where
+  buildLayerLinks _ _ = (pure @[] . ("self", )) ... mkSelf
     where
-      self = safeLink (Proxy @api) (Proxy @api)
+      mkSelf = safeLink (Proxy @api) (Proxy @api)
 
 instance
   ( HasLink c
@@ -105,14 +107,6 @@ instance
   buildLayerLinks _ server = (symbolVal (Proxy @(RelName c)), l) : buildLayerLinks (Proxy @('Layer api cs)) server
     where
       l = safeLink (Proxy @c) (Proxy @c)
-
-instance
-  ( MkLink api Link ~ (p -> Link)
-  , ReplaceHandler (p -> m (res Intermediate)) [(String, Link)] ~ (p -> [(String, Link)])
-  ) => BuildLayerLinks ('Layer api '[]) (p -> m (res Intermediate)) where
-  buildLayerLinks _ _ p = [("self", self p)]
-    where
-      self = safeLink (Proxy @api) (Proxy @api)
 
 instance
   ( HasLink c
