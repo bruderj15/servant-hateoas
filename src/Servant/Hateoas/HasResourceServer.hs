@@ -35,39 +35,35 @@ class HasResourceServer api m ct where
   getResourceServer ::
     ( MonadIO m
     , HasHandler api
-    , ServerT api m ~ server
-    , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
+    , ServerT (Resourcify api ct) m ~ ResourcifyServer (ServerT api m) ct m
     ) => Proxy m -> Proxy ct -> Proxy api -> ServerT (Resourcify api ct) m
 
-instance {-# OVERLAPPING #-}
-  ( HasResourceServer a m ct, HasHandler a
-  , HasResourceServer b m ct, HasHandler b
-  ) => HasResourceServer (a :<|> b) m ct where
+instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasHandler a, HasResourceServer b m ct, HasHandler b) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
 
 instance
-  ( DotDotDot server (IsFun server)
-  , Replace server (m (res a)) (IsFun server) ~ ResourcifyServer server ct m
-  , Return server (IsFun server) ~ m a
-  , server ~ ServerT api m
+  ( server ~ ServerT api m
   , res ~ MkResource ct
   , ToResource res a
+  , DotDotDot server (IsFun server)
+  , Return server (IsFun server) ~ m a
+  , Replace server (m (res a)) (IsFun server) ~ ResourcifyServer server ct m
   ) => HasResourceServer api m ct where
   getResourceServer m _ api = fmap (toResource (Proxy @(MkResource ct))) ... getHandler m api
 
 instance {-# OVERLAPPING #-}
   ( l ~ 'Layer api cs
   , rApi ~ Resourcify api ct
-  , server ~ ServerT api m
-  , rServer ~ ResourcifyServer server ct m
-  , res ~ MkResource ct
-  , Resource res
   , HasLink rApi
   , IsElem rApi rApi
+  , rServer ~ ResourcifyServer (ServerT api m) ct m
+  , res ~ MkResource ct
+  , rServerRels ~ ReplaceHandler rServer [(String, Link)]
+  , Resource res
   , BuildLayerLinks (Resourcify l ct) rServer
-  , DotDotDot (ReplaceHandler rServer [(String, Link)]) (IsFun (ReplaceHandler rServer [(String, Link)]))
-  , Return (ReplaceHandler rServer [(String, Link)]) (IsFun (ReplaceHandler rServer [(String, Link)])) ~ [(String, Link)]
-  , Replace (ReplaceHandler rServer [(String, Link)]) (m (res Intermediate)) (IsFun (ReplaceHandler rServer [(String, Link)])) ~ rServer
+  , DotDotDot rServerRels (IsFun rServerRels)
+  , Return rServerRels (IsFun rServerRels) ~ [(String, Link)]
+  , Replace rServerRels (m (res Intermediate)) (IsFun rServerRels) ~ rServer
   ) => HasResourceServer ('Layer api cs) m ct where
   getResourceServer _ _ _ = (return @m . foldr addLink (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer)
 
@@ -75,13 +71,11 @@ instance {-# OVERLAPPING #-} HasResourceServer ('[] :: [Layer]) m ct where
   getResourceServer _ _ _ = emptyServer
 
 instance {-# OVERLAPPING #-}
-  ( HasResourceServer ls m ct
-  , HasResourceServer l m ct
-  , HasHandler l
-  , HasHandler ls
-  , IsElem (NodeApi l) (NodeApi l)
+  ( MonadIO m
+  , HasResourceServer ls m ct, HasHandler l
+  , HasResourceServer l m ct, HasHandler ls
   , HasLink (NodeApi l)
+  , IsElem (NodeApi l) (NodeApi l)
   , BuildLayerLinks (Resourcify l ct) (ResourcifyServer (ServerT l m) ct m)
-  , MonadIO m
   ) => HasResourceServer (l ': ls) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @l) :<|> getResourceServer m ct (Proxy @ls)
