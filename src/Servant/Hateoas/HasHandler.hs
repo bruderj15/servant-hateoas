@@ -36,7 +36,6 @@ instance (HasHandler l, HasHandler ls) => HasHandler ((l ': ls) :: [Layer]) wher
 instance HasHandler api => HasHandler ('Layer api cs) where
   getHandler m _ = getHandler m (Proxy @api)
 
-
 instance HasHandler (Verb m s ct Intermediate) where
   getHandler _ _ = return $ coerce ()
 

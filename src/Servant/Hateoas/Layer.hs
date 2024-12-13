@@ -11,8 +11,8 @@ import Data.Coerce
 import GHC.TypeLits
 
 data Layer = Layer
-  { nodeApi      :: Type      -- relative path from host: e.g. /api/users
-  , childrenApis :: [Type]    -- immediate relative children paths from host: e.g. [/api/users/1]
+  { nodeApi      :: Type      -- relative path from host to this layer:                     e.g.  /api/users
+  , childrenApis :: [Type]    -- immediate relative children paths of this layer from host: e.g. [/api/users/1, ...]
   }
 
 type family NodeApi (a :: Layer) where
@@ -69,6 +69,7 @@ type family FirstPath api prefix where
   FirstPath a          Bottom = '[          a :> GetIntermediate]
   FirstPath a          prefix = '[prefix :> a :> GetIntermediate]
 
+-- TODO: More ...
 type family RelName children :: Symbol where
   RelName ((sym :: Symbol) :> m s ct a) = sym
   RelName (Capture sym t   :> m s ct a) = sym

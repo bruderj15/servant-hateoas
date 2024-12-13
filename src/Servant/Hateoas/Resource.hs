@@ -38,4 +38,3 @@ class ToResource res a where
   toResource _ = wrap
 
 instance Resource res => ToResource res [a]
-instance Resource res => ToResource res ()

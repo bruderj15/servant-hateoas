@@ -9,28 +9,25 @@ import Servant.Hateoas.HasHandler
 import Data.Kind
 import Control.Monad.IO.Class
 
--- For now just wrap response type with the content-types resource.
--- May consider special cases where @a@ in @(Verb _ _ _ a)@ is already a resource.
--- Force overwrite?
--- Or simply with the content types resource again?
+-- Wrap response type with the content-types resource.
 type Resourcify :: k -> Type -> k
 type family Resourcify api ct where
-  Resourcify (a :<|> b) ct           = Resourcify a ct :<|> Resourcify b ct
-  Resourcify (a :> b) ct             = a :> Resourcify b ct
-  Resourcify (Verb m s _ a) ct       = Verb m s '[ct] (MkResource ct a)
-  Resourcify ('Layer api cs) ct      = 'Layer (Resourcify api ct) (Resourcify cs ct)
-  Resourcify (x:xs) ct               = Resourcify x ct : Resourcify xs ct
-  Resourcify a _                     = a
+  Resourcify EmptyAPI        ct = EmptyAPI
+  Resourcify (a :<|> b)      ct = Resourcify a ct :<|> Resourcify b ct
+  Resourcify (a :> b)        ct = a :> Resourcify b ct
+  Resourcify (Verb m s _ a)  ct = Verb m s '[ct] (MkResource ct a)
+  Resourcify ('Layer api cs) ct = 'Layer (Resourcify api ct) (Resourcify cs ct)
+  Resourcify (x:xs)          ct = Resourcify x ct : Resourcify xs ct
+  Resourcify a               _  = a
 
 -- Given a @ServerT api m@ and some @ct@ we want a @ServerT (Resourcify api ct) m@.
--- Current solution is a little bit hacky, but it works as long as @m@ is not nested.
 type ResourcifyServer :: k -> Type -> (Type -> Type) -> Type
 type family ResourcifyServer server ct m where
-  ResourcifyServer EmptyServer ct m     = EmptyServer
-  ResourcifyServer (a :<|> b) ct m      = ResourcifyServer a ct m :<|> ResourcifyServer b ct m
-  ResourcifyServer (a -> b)   ct m      = a -> ResourcifyServer b ct m
-  ResourcifyServer (m a)      ct m      = m (MkResource ct a)
-  ResourcifyServer (f a)      ct m      = f (ResourcifyServer a ct m)
+  ResourcifyServer EmptyServer ct m = EmptyServer
+  ResourcifyServer (a :<|> b)  ct m = ResourcifyServer a ct m :<|> ResourcifyServer b ct m
+  ResourcifyServer (a -> b)    ct m = a -> ResourcifyServer b ct m
+  ResourcifyServer (m a)       ct m = m (MkResource ct a)
+  ResourcifyServer (f a)       ct m = f (ResourcifyServer a ct m) -- needed for containers like [Foo]
 
 class HasResourceServer api server m ct where
   getResourceServer ::
@@ -44,9 +41,7 @@ instance {-# OVERLAPPABLE #-}
   ( HasResourceServer a aServer m ct, HasHandler a
   , HasResourceServer b bServer m ct, HasHandler b
   ) => HasResourceServer (a :<|> b) (aServer :<|> bServer) m ct where
-  getResourceServer m ct _ _ =
-         getResourceServer m ct (Proxy @a) (Proxy @aServer)
-    :<|> getResourceServer m ct (Proxy @b) (Proxy @bServer)
+  getResourceServer m ct _ _ = getResourceServer m ct (Proxy @a) (Proxy @aServer) :<|> getResourceServer m ct (Proxy @b) (Proxy @bServer)
 
 instance (ToResource (MkResource ct) p, ResourcifyServer (m p) ct m ~ m (MkResource ct p)) => HasResourceServer api (m p) m ct where
   getResourceServer m _ api _ = toResource (Proxy @(MkResource ct)) <$> getHandler m api
@@ -102,7 +97,7 @@ instance {-# OVERLAPPING #-}
   ) => HasResourceServer ('Layer api cs) (a -> m ()) m ct where
   getResourceServer _ _ _ _ = return . foldr addLink (wrap ()) . buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer)
 
-instance HasResourceServer ('[] :: [Layer]) (Tagged m EmptyServer) m ct where
+instance {-# OVERLAPPING #-} HasResourceServer ('[] :: [Layer]) (Tagged m EmptyServer) m ct where
   getResourceServer _ _ _ _ = emptyServer
 
 instance {-# OVERLAPPING #-}
