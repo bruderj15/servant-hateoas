@@ -56,12 +56,12 @@ instance {-# OVERLAPPING #-}
   , ServerT (Resourcify api ct) m ~ ResourcifyServer (ServerT api m) ct m
   , rServer ~ ResourcifyServer (ServerT api m) ct m
   , res ~ MkResource ct
-  , rServerRels ~ ReplaceHandler rServer [(String, Link)]
+  , buildFun ~ ReplaceHandler rServer [(String, Link)]
   , Resource res
   , BuildLayerLinks (Resourcify l ct) rServer
-  , DotDotDot rServerRels (IsFun rServerRels)
-  , Return rServerRels (IsFun rServerRels) ~ [(String, Link)]
-  , Replace rServerRels (m (res Intermediate)) (IsFun rServerRels) ~ rServer
+  , DotDotDot buildFun (IsFun buildFun)
+  , Return buildFun (IsFun buildFun) ~ [(String, Link)]
+  , Replace buildFun (m (res Intermediate)) (IsFun buildFun) ~ rServer
   ) => HasResourceServer ('Layer api cs) m ct where
   getResourceServer _ _ _ = (return @m . foldr addLink (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer)
 
