@@ -53,6 +53,8 @@ data Top
 
 -- Creates all intermediate layers of the api and their immediate children as HATEOAS-endpoints
 -- Normalize api before for correctness
+-- TODO: Here is also the place where we can decide which layers are actually valid
+--       E.g. a layer for BasicAuth makes no sense - so skip it here
 type Layers :: p -> q -> [Layer]
 type family Layers api stand where
   Layers (a :<|> b)  Bottom                   = Layers a Bottom ++ Layers b Bottom
