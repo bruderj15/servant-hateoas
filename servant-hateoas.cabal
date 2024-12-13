@@ -39,12 +39,13 @@ library
 
     other-modules:       Servant.Hateoas.Example
 
-    build-depends:       base                          >= 4.17.2 && < 5
-                       , aeson                         >= 2.2.3  && < 2.3
-                       , http-media                    >= 0.8.1  && < 0.9
-                       , servant                       >= 0.20.2 && < 0.21
-                       , servant-server                >= 0.20.2 && < 0.21
-                       , constrained-some              >= 0.1.0  && < 0.2
+    build-depends:       base                          >= 4.17.2  && < 5
+                       , aeson                         >= 2.2.3   && < 2.3
+                       , http-media                    >= 0.8.1   && < 0.9
+                       , servant                       >= 0.20.2  && < 0.21
+                       , servant-server                >= 0.20.2  && < 0.21
+                       , constrained-some              >= 0.1.0   && < 0.2
+                       , control-dotdotdot             >= 0.1.0.1 && < 0.1.0.2
     hs-source-dirs:      src
     default-language:    GHC2021
     default-extensions:  DataKinds, TypeFamilies

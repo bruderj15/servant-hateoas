@@ -5,6 +5,7 @@ module Servant.Hateoas.Example where
 
 import Servant.Hateoas
 import Servant.Hateoas.Layer
+import Servant.Hateoas.Rewrite
 import Servant
 import Data.Aeson
 import GHC.Generics
@@ -32,10 +33,10 @@ userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 --     where
 --       mkLink = safeLink (Proxy @UserApi) (Proxy @UserGetOne)
 
-hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
+-- hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
 hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi) (Proxy @(Server UserApi))
 
-hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers UserGetAll Bottom)) Proxy
+-- hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers (Normalize UserApi) Bottom)) Proxy
 
 -- testApp :: Application
 -- testApp = serve (Proxy @(LayerApi (Layers UserApi Bottom (HAL JSON)))) hateoasUserApiLayerServer
