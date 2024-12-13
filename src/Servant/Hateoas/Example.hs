@@ -34,9 +34,9 @@ userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 --       mkLink = safeLink (Proxy @UserApi) (Proxy @UserGetOne)
 
 -- hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
-hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi)
+hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(UserApi))
 
-hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers (Normalize UserApi) Bottom))
+hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers (Normalize UserGetAll) Bottom))
 
 -- testApp :: Application
 -- testApp = serve (Proxy @(LayerApi (Layers UserApi Bottom (HAL JSON)))) hateoasUserApiLayerServer

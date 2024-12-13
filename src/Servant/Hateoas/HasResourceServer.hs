@@ -1,5 +1,4 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 
 module Servant.Hateoas.HasResourceServer where
 
@@ -32,16 +31,14 @@ type family ResourcifyServer server ct m where
   ResourcifyServer (f a)       ct m = f (ResourcifyServer a ct m) -- needed for containers like [Foo]
 
 class HasResourceServer api m ct where
-  getResourceServer ::
-    ( MonadIO m
-    , ServerT (Resourcify api ct) m ~ ResourcifyServer (ServerT api m) ct m
-    ) => Proxy m -> Proxy ct -> Proxy api -> ServerT (Resourcify api ct) m
+  getResourceServer :: MonadIO m => Proxy m -> Proxy ct -> Proxy api -> ServerT (Resourcify api ct) m
 
 instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
 
 instance
   ( server ~ ServerT api m
+  , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
   , res ~ MkResource ct
   , ToResource res a
   , HasHandler api
@@ -56,6 +53,7 @@ instance {-# OVERLAPPING #-}
   , rApi ~ Resourcify api ct
   , HasLink rApi
   , IsElem rApi rApi
+  , ServerT (Resourcify api ct) m ~ ResourcifyServer (ServerT api m) ct m
   , rServer ~ ResourcifyServer (ServerT api m) ct m
   , res ~ MkResource ct
   , rServerRels ~ ReplaceHandler rServer [(String, Link)]
