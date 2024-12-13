@@ -34,17 +34,17 @@ type family ResourcifyServer server ct m where
 class HasResourceServer api m ct where
   getResourceServer ::
     ( MonadIO m
-    , HasHandler api
     , ServerT (Resourcify api ct) m ~ ResourcifyServer (ServerT api m) ct m
     ) => Proxy m -> Proxy ct -> Proxy api -> ServerT (Resourcify api ct) m
 
-instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasHandler a, HasResourceServer b m ct, HasHandler b) => HasResourceServer (a :<|> b) m ct where
+instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
 
 instance
   ( server ~ ServerT api m
   , res ~ MkResource ct
   , ToResource res a
+  , HasHandler api
   , DotDotDot server (IsFun server)
   , Return server (IsFun server) ~ m a
   , Replace server (m (res a)) (IsFun server) ~ ResourcifyServer server ct m
@@ -72,8 +72,8 @@ instance {-# OVERLAPPING #-} HasResourceServer ('[] :: [Layer]) m ct where
 
 instance {-# OVERLAPPING #-}
   ( MonadIO m
-  , HasResourceServer ls m ct, HasHandler l
-  , HasResourceServer l m ct, HasHandler ls
+  , HasResourceServer ls m ct
+  , HasResourceServer l m ct
   , HasLink (NodeApi l)
   , IsElem (NodeApi l) (NodeApi l)
   , BuildLayerLinks (Resourcify l ct) (ResourcifyServer (ServerT l m) ct m)
