@@ -3,9 +3,7 @@
 module Servant.Hateoas.Layer where
 
 import Servant
-import Servant.Hateoas.Resource
 import Data.Kind
-import Control.Monad.IO.Class
 import GHC.TypeLits
 
 data Layer = Layer
@@ -24,6 +22,16 @@ instance HasServer api context => HasServer ('Layer api cs) context where
   route _ = route (Proxy @api)
   hoistServerWithContext _ = hoistServerWithContext (Proxy @api)
 
+instance HasServer ('[] :: [Layer]) context where
+  type ServerT '[] m = ServerT EmptyAPI m
+  route _ = route (Proxy @EmptyAPI)
+  hoistServerWithContext _ = hoistServerWithContext (Proxy @EmptyAPI)
+
+instance HasServer (l ': ls :: [Layer]) context where
+  type ServerT (l ': ls) m = ServerT l m :<|> ServerT ls m
+  route _ = route (Proxy @(l ': ls))
+  hoistServerWithContext _ = hoistServerWithContext (Proxy @(l ': ls))
+
 type (++) xs ys = AppendList xs ys
 
 -- Wrapping api in: Bottom :> api :> Top, so api has kind k and not Type.
@@ -37,18 +45,18 @@ type Layers :: p -> q -> [Layer]
 type family Layers api stand where
   Layers (a :<|> b)  Bottom                   = Layers a Bottom ++ Layers b Bottom
   Layers (a :<|> b) (Bottom :> prefix :> Top) = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
-  Layers (a :> b)    Bottom                   = '[ 'Layer            ()  (FirstPath a Bottom) ] ++ Layers b (Bottom           :> a :> Top)
-  Layers (a :> b)   (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> ()) (FirstPath a prefix) ] ++ Layers b (Bottom :> prefix :> a :> Top)
+  Layers (a :> b)    Bottom                   = '[ 'Layer           (Get '[] ())  (FirstPath a Bottom) ] ++ Layers b (Bottom           :> a :> Top)
+  Layers (a :> b)   (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> Get '[] ()) (FirstPath a prefix) ] ++ Layers b (Bottom :> prefix :> a :> Top)
   Layers _ _                                  = '[]
 
 -- Interpreting api as a tree returning the first layers of the tree as HATEOAS-endpoint
 type FirstPath :: p -> q -> [Type]
 type family FirstPath api prefix where
   FirstPath (a :<|> b) prefix = FirstPath a prefix ++ FirstPath b prefix
-  FirstPath (a :> _)   Bottom = '[          a :> ()]
-  FirstPath (a :> _)   prefix = '[prefix :> a :> ()]
-  FirstPath a          Bottom = '[          a :> ()]
-  FirstPath a          prefix = '[prefix :> a :> ()]
+  FirstPath (a :> _)   Bottom = '[          a :> Get '[] ()]
+  FirstPath (a :> _)   prefix = '[prefix :> a :> Get '[] ()]
+  FirstPath a          Bottom = '[          a :> Get '[] ()]
+  FirstPath a          prefix = '[prefix :> a :> Get '[] ()]
 
 type family RelName children :: Symbol where
   RelName ((sym :: Symbol) :> m s ct a) = sym
@@ -105,24 +113,3 @@ instance
   buildLayerLinks _ server p = (symbolVal (Proxy @(RelName c)), mkLink p) : buildLayerLinks (Proxy @('Layer api cs)) server p
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
-
-type LayerApi :: [Layer] -> Type
-type family LayerApi ls where
-  LayerApi '[]       = EmptyAPI
-  LayerApi (l ': ls) = NodeApi l :<|> LayerApi ls
-
-type MkLayerServer :: (Type -> Type) -> Type -> [Layer] -> Constraint
-class MkLayerServer m ct ls where
-  mkLayerServer :: Proxy m -> Proxy ct -> Proxy ls -> ServerT (LayerApi ls) m
-
-instance MkLayerServer m ct '[] where
-  mkLayerServer _ _ _ = emptyServer
-
-instance
-  ( MkLayerServer m ct ls
-  , HasLayerServer l (ServerT (NodeApi l) m) m ct
-  , IsElem (NodeApi l) (NodeApi l)
-  , MonadIO m, HasLink (NodeApi l)
-  , BuildLayerLinks l (ServerT (NodeApi l) m)
-  ) => MkLayerServer m ct (l ': ls) where
-  mkLayerServer m ct _ = getLayerServer m ct (Proxy @l) (Proxy @(ServerT (NodeApi l) m)) :<|> mkLayerServer m ct (Proxy @ls)

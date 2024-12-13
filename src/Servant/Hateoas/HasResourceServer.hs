@@ -26,6 +26,7 @@ type family Resourcify api ct where
 -- Current solution is a little bit hacky, but it works as long as @m@ is not nested.
 type ResourcifyServer :: k -> Type -> (Type -> Type) -> Type
 type family ResourcifyServer server ct m where
+  ResourcifyServer EmptyServer ct m     = EmptyServer
   ResourcifyServer (a :<|> b) ct m      = ResourcifyServer a ct m :<|> ResourcifyServer b ct m
   ResourcifyServer (a -> b)   ct m      = a -> ResourcifyServer b ct m
   ResourcifyServer (m a)      ct m      = m (MkResource ct a)
@@ -71,7 +72,7 @@ instance (ToResource (MkResource ct) p, ResourcifyServer (m p) ct m ~ m (MkResou
 instance (ToResource (MkResource ct) p, ResourcifyServer (m p) ct m ~ m (MkResource ct p)) => HasResourceServer api (q -> r -> s -> t -> u -> v -> w -> m p) m ct where
   getResourceServer m _ api _ q r s t u v w = toResource (Proxy @(MkResource ct)) <$> getHandler m api q r s t u v w
 
-instance
+instance {-# OVERLAPPING #-}
   ( l ~ 'Layer api cs
   , rApi ~ Resourcify api ct
   , rServer ~ ResourcifyServer server ct m
@@ -84,10 +85,9 @@ instance
   , BuildLayerLinks (Resourcify l ct) (m (res ()))
   , ResourcifyServer server ct m ~ m (MkResource ct ())
   ) => HasResourceServer ('Layer api cs) (m ()) m ct where
-  getResourceServer _ _ _ _ =
-    return $ foldr addLink (wrap ()) $ buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer)
+  getResourceServer _ _ _ _ = return $ foldr addLink (wrap ()) $ buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer)
 
-instance
+instance {-# OVERLAPPING #-}
   ( l ~ 'Layer api cs
   , rApi ~ Resourcify api ct
   , rServer ~ ResourcifyServer server ct m
@@ -100,5 +100,19 @@ instance
   , BuildLayerLinks (Resourcify l ct) (a -> m (res ()))
   , ResourcifyServer server ct m ~ (a -> m (MkResource ct ()))
   ) => HasResourceServer ('Layer api cs) (a -> m ()) m ct where
-  getResourceServer _ _ _ _ a =
-    return $ foldr addLink (wrap ()) $ buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer) a
+  getResourceServer _ _ _ _ = return . foldr addLink (wrap ()) . buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer)
+
+instance HasResourceServer ('[] :: [Layer]) (Tagged m EmptyServer) m ct where
+  getResourceServer _ _ _ _ = emptyServer
+
+instance {-# OVERLAPPING #-}
+  ( HasResourceServer ls (ServerT ls m) m ct
+  , HasResourceServer l (ServerT l m) m ct
+  , HasHandler l
+  , HasHandler ls
+  , IsElem (NodeApi l) (NodeApi l)
+  , HasLink (NodeApi l)
+  , BuildLayerLinks (Resourcify l ct) (ResourcifyServer (ServerT l m) ct m)
+  , MonadIO m
+  ) => HasResourceServer (l ': ls) server m ct where
+  getResourceServer m ct _ _ = getResourceServer m ct (Proxy @l) (Proxy @(ServerT l m)) :<|> getResourceServer m ct (Proxy @ls) (Proxy @(ServerT ls m))

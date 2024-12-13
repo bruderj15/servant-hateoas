@@ -4,6 +4,7 @@
 module Servant.Hateoas.Example where
 
 import Servant.Hateoas
+import Servant.Hateoas.Layer
 import Servant
 import Data.Aeson
 import GHC.Generics
@@ -34,8 +35,7 @@ userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
 hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @UserApi) (Proxy @(Server UserApi))
 
--- hateoasUserApiLayerServer :: Server (LayerApi (Layers UserApi Bottom (HAL JSON)))
--- hateoasUserApiLayerServer = mkLayerServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers UserApi Bottom (HAL JSON)))
+hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers UserGetAll Bottom)) Proxy
 
 -- testApp :: Application
 -- testApp = serve (Proxy @(LayerApi (Layers UserApi Bottom (HAL JSON)))) hateoasUserApiLayerServer
