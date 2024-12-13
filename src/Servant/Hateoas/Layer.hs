@@ -101,23 +101,14 @@ instance
 instance
   ( HasLink c
   , IsElem c c
-  , MkLink c Link ~ Link
-  , ReplaceHandler (m (res Intermediate)) [(String, Link)] ~ [(String, Link)]
-  , BuildLayerLinks ('Layer api cs) (m (res Intermediate))
+  , mkLink ~ MkLink c Link
   , KnownSymbol (RelName c)
-  ) => BuildLayerLinks ('Layer api (c ': cs)) (m (res Intermediate)) where
-  buildLayerLinks _ server = (symbolVal (Proxy @(RelName c)), l) : buildLayerLinks (Proxy @('Layer api cs)) server
-    where
-      l = safeLink (Proxy @c) (Proxy @c)
-
-instance
-  ( HasLink c
-  , IsElem c c
-  , MkLink c Link ~ (p -> Link)
-  , ReplaceHandler (p -> m (res Intermediate)) [(String, Link)] ~ (p -> [(String, Link)])
-  , BuildLayerLinks ('Layer api cs) (p -> m (res Intermediate))
-  , KnownSymbol (RelName c)
-  ) => BuildLayerLinks ('Layer api (c ': cs)) (p -> m (res Intermediate)) where
-  buildLayerLinks _ server p = (symbolVal (Proxy @(RelName c)), mkLink p) : buildLayerLinks (Proxy @('Layer api cs)) server p
+  , BuildLayerLinks ('Layer api cs) server
+  , DotDotDot mkLink (IsFun mkLink)
+  , ReplaceHandler server [(String, Link)] ~ [(String, Return mkLink (IsFun mkLink))]
+  , Replace mkLink [(String, Return mkLink (IsFun mkLink))] (IsFun mkLink) ~ [(String, Return mkLink (IsFun mkLink))]
+  ) => BuildLayerLinks ('Layer api (c ': cs)) server where
+  buildLayerLinks _ server = ((: ls) . (symbolVal (Proxy @(RelName c)),)) ... mkLink
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
+      ls = buildLayerLinks (Proxy @('Layer api cs)) server
