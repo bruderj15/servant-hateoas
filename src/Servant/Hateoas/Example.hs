@@ -4,7 +4,6 @@
 module Servant.Hateoas.Example where
 
 import Servant.Hateoas
-import Servant.Hateoas.Rewrite
 import Servant
 import Data.Aeson
 import GHC.Generics

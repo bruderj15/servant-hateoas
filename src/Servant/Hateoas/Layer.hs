@@ -19,6 +19,11 @@ type family NodeApi (a :: Layer) where
 type family ChildrenApis (a :: Layer) where
   ChildrenApis ('Layer _ children) = children
 
+instance HasServer api context => HasServer ('Layer api cs) context where
+  type ServerT ('Layer api cs) m = ServerT api m
+  route _ = route (Proxy @api)
+  hoistServerWithContext _ = hoistServerWithContext (Proxy @api)
+
 type (++) xs ys = AppendList xs ys
 
 -- Wrapping api in: Bottom :> api :> Top, so api has kind k and not Type.
@@ -26,54 +31,24 @@ type (++) xs ys = AppendList xs ys
 data Bottom
 data Top
 
-type GetHateoas ct = Get '[ct] (MkResource ct ())
-
 -- Creates all intermediate layers of the api and their immediate children as HATEOAS-endpoints
-type Layers :: p -> q -> Type -> [Layer]
-type family Layers api stand ct where
-  Layers (a :<|> b)  Bottom                   ct = Layers a Bottom ct ++ Layers b Bottom ct
-  Layers (a :<|> b) (Bottom :> prefix :> Top) ct = Layers a (Bottom :> prefix :> Top) ct ++ Layers b (Bottom :> prefix :> Top) ct
-  Layers (a :> b)    Bottom                   ct = '[ 'Layer           (GetHateoas ct) (FirstPath a Bottom ct) ] ++ Layers b (Bottom           :> a :> Top) ct
-  Layers (a :> b)   (Bottom :> prefix :> Top) ct = '[ 'Layer (prefix :> GetHateoas ct) (FirstPath a prefix ct) ] ++ Layers b (Bottom :> prefix :> a :> Top) ct
-  Layers _ _                                  ct = '[]
+-- Normalize api before for correctness
+type Layers :: p -> q -> [Layer]
+type family Layers api stand where
+  Layers (a :<|> b)  Bottom                   = Layers a Bottom ++ Layers b Bottom
+  Layers (a :<|> b) (Bottom :> prefix :> Top) = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
+  Layers (a :> b)    Bottom                   = '[ 'Layer            ()  (FirstPath a Bottom) ] ++ Layers b (Bottom           :> a :> Top)
+  Layers (a :> b)   (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> ()) (FirstPath a prefix) ] ++ Layers b (Bottom :> prefix :> a :> Top)
+  Layers _ _                                  = '[]
 
 -- Interpreting api as a tree returning the first layers of the tree as HATEOAS-endpoint
-type FirstPath :: p -> q -> Type -> [Type]
-type family FirstPath api prefix ct where
-  FirstPath (a :<|> b) prefix ct = FirstPath a prefix ct ++ FirstPath b prefix ct
-  FirstPath (a :> _)   Bottom ct = '[          a :> GetHateoas ct]
-  FirstPath (a :> _)   prefix ct = '[prefix :> a :> GetHateoas ct]
-  FirstPath a          Bottom ct = '[          a :> GetHateoas ct]
-  FirstPath a          prefix ct = '[prefix :> a :> GetHateoas ct]
-
--- This seems highly similar to HasResourceServer if it was poly-kinded in the api
-type HasLayerServer :: Layer -> Type -> (Type -> Type) -> Type -> Constraint
-class HasLayerServer l server m ct where
-  getLayerServer ::
-    ( MonadIO m
-    , HasLink (NodeApi l)
-    , IsElem (NodeApi l) (NodeApi l)
-    , BuildLayerLinks l server
-    , ServerT (NodeApi l) m ~ server
-    ) => Proxy m
-      -> Proxy ct
-      -> Proxy l
-      -> Proxy server
-      -> ServerT (NodeApi l) m
-
-instance
-  ( res ~ MkResource ct
-  , Resource res
-  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
-  ) => HasLayerServer ('Layer api cs) (m (res ())) m ct where
-  getLayerServer _ _ l server = return $ foldr addLink (wrap ()) $ buildLayerLinks l server
-
-instance
-  ( res ~ MkResource ct
-  , Resource res
-  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
-  ) => HasLayerServer ('Layer api cs) (p -> m (res ())) m ct where
-  getLayerServer _ _ l server p = return $ foldr addLink (wrap ()) $ buildLayerLinks l server p
+type FirstPath :: p -> q -> [Type]
+type family FirstPath api prefix where
+  FirstPath (a :<|> b) prefix = FirstPath a prefix ++ FirstPath b prefix
+  FirstPath (a :> _)   Bottom = '[          a :> ()]
+  FirstPath (a :> _)   prefix = '[prefix :> a :> ()]
+  FirstPath a          Bottom = '[          a :> ()]
+  FirstPath a          prefix = '[prefix :> a :> ()]
 
 type family RelName children :: Symbol where
   RelName ((sym :: Symbol) :> m s ct a) = sym
