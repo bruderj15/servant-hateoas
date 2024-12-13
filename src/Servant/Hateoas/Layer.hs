@@ -1,9 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Servant.Hateoas.Layer where
 
 import Servant
+import Servant.Hateoas.Resource
 import Data.Kind
+import Data.Aeson
+import Data.Coerce
 import GHC.TypeLits
 
 data Layer = Layer
@@ -32,6 +36,13 @@ instance HasServer (l ': ls :: [Layer]) context where
   route _ = route (Proxy @(l ': ls))
   hoistServerWithContext _ = hoistServerWithContext (Proxy @(l ': ls))
 
+newtype Intermediate = Intermediate ()
+  deriving newtype (Show, Eq, Ord, ToJSON)
+type GetIntermediate = Get '[] Intermediate
+
+instance Resource res => ToResource res Intermediate where
+  toResource _ _ = wrap $ coerce ()
+
 type (++) xs ys = AppendList xs ys
 
 -- Wrapping api in: Bottom :> api :> Top, so api has kind k and not Type.
@@ -45,18 +56,18 @@ type Layers :: p -> q -> [Layer]
 type family Layers api stand where
   Layers (a :<|> b)  Bottom                   = Layers a Bottom ++ Layers b Bottom
   Layers (a :<|> b) (Bottom :> prefix :> Top) = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
-  Layers (a :> b)    Bottom                   = '[ 'Layer           (Get '[] ())  (FirstPath a Bottom) ] ++ Layers b (Bottom           :> a :> Top)
-  Layers (a :> b)   (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> Get '[] ()) (FirstPath a prefix) ] ++ Layers b (Bottom :> prefix :> a :> Top)
+  Layers (a :> b)    Bottom                   = '[ 'Layer            GetIntermediate  (FirstPath a Bottom) ] ++ Layers b (Bottom           :> a :> Top)
+  Layers (a :> b)   (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> GetIntermediate) (FirstPath a prefix) ] ++ Layers b (Bottom :> prefix :> a :> Top)
   Layers _ _                                  = '[]
 
 -- Interpreting api as a tree returning the first layers of the tree as HATEOAS-endpoint
 type FirstPath :: p -> q -> [Type]
 type family FirstPath api prefix where
   FirstPath (a :<|> b) prefix = FirstPath a prefix ++ FirstPath b prefix
-  FirstPath (a :> _)   Bottom = '[          a :> Get '[] ()]
-  FirstPath (a :> _)   prefix = '[prefix :> a :> Get '[] ()]
-  FirstPath a          Bottom = '[          a :> Get '[] ()]
-  FirstPath a          prefix = '[prefix :> a :> Get '[] ()]
+  FirstPath (a :> _)   Bottom = '[          a :> GetIntermediate]
+  FirstPath (a :> _)   prefix = '[prefix :> a :> GetIntermediate]
+  FirstPath a          Bottom = '[          a :> GetIntermediate]
+  FirstPath a          prefix = '[prefix :> a :> GetIntermediate]
 
 type family RelName children :: Symbol where
   RelName ((sym :: Symbol) :> m s ct a) = sym
@@ -76,8 +87,8 @@ class BuildLayerLinks l server where
 
 instance
   ( MkLink api Link ~ Link
-  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
-  ) => BuildLayerLinks ('Layer api '[]) (m (res ())) where
+  , ReplaceHandler (m (res Intermediate)) [(String, Link)] ~ [(String, Link)]
+  ) => BuildLayerLinks ('Layer api '[]) (m (res Intermediate)) where
   buildLayerLinks _ _ = [("self", self)]
     where
       self = safeLink (Proxy @api) (Proxy @api)
@@ -86,18 +97,18 @@ instance
   ( HasLink c
   , IsElem c c
   , MkLink c Link ~ Link
-  , ReplaceHandler (m (res ())) [(String, Link)] ~ [(String, Link)]
-  , BuildLayerLinks ('Layer api cs) (m (res ()))
+  , ReplaceHandler (m (res Intermediate)) [(String, Link)] ~ [(String, Link)]
+  , BuildLayerLinks ('Layer api cs) (m (res Intermediate))
   , KnownSymbol (RelName c)
-  ) => BuildLayerLinks ('Layer api (c ': cs)) (m (res ())) where
+  ) => BuildLayerLinks ('Layer api (c ': cs)) (m (res Intermediate)) where
   buildLayerLinks _ server = (symbolVal (Proxy @(RelName c)), l) : buildLayerLinks (Proxy @('Layer api cs)) server
     where
       l = safeLink (Proxy @c) (Proxy @c)
 
 instance
   ( MkLink api Link ~ (p -> Link)
-  , ReplaceHandler (p -> m (res ())) [(String, Link)] ~ (p -> [(String, Link)])
-  ) => BuildLayerLinks ('Layer api '[]) (p -> m (res ())) where
+  , ReplaceHandler (p -> m (res Intermediate)) [(String, Link)] ~ (p -> [(String, Link)])
+  ) => BuildLayerLinks ('Layer api '[]) (p -> m (res Intermediate)) where
   buildLayerLinks _ _ p = [("self", self p)]
     where
       self = safeLink (Proxy @api) (Proxy @api)
@@ -106,10 +117,10 @@ instance
   ( HasLink c
   , IsElem c c
   , MkLink c Link ~ (p -> Link)
-  , ReplaceHandler (p -> m (res ())) [(String, Link)] ~ (p -> [(String, Link)])
-  , BuildLayerLinks ('Layer api cs) (p -> m (res ()))
+  , ReplaceHandler (p -> m (res Intermediate)) [(String, Link)] ~ (p -> [(String, Link)])
+  , BuildLayerLinks ('Layer api cs) (p -> m (res Intermediate))
   , KnownSymbol (RelName c)
-  ) => BuildLayerLinks ('Layer api (c ': cs)) (p -> m (res ())) where
+  ) => BuildLayerLinks ('Layer api (c ': cs)) (p -> m (res Intermediate)) where
   buildLayerLinks _ server p = (symbolVal (Proxy @(RelName c)), mkLink p) : buildLayerLinks (Proxy @('Layer api cs)) server p
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)

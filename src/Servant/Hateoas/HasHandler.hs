@@ -2,6 +2,7 @@ module Servant.Hateoas.HasHandler where
 
 import Servant
 import Servant.Hateoas.Layer
+import Data.Coerce
 import Control.Monad.IO.Class
 import GHC.TypeLits
 
@@ -35,5 +36,9 @@ instance (HasHandler l, HasHandler ls) => HasHandler ((l ': ls) :: [Layer]) wher
 instance HasHandler api => HasHandler ('Layer api cs) where
   getHandler m _ = getHandler m (Proxy @api)
 
-instance HasHandler (Verb m s ct ()) where
-  getHandler _ _ = return ()
+
+instance HasHandler (Verb m s ct Intermediate) where
+  getHandler _ _ = return $ coerce ()
+
+  -- TODO: We also need instances for any type of prefix to Verb m s ct Intermediate no matter if they change the arity of the hanlder or not
+  -- In any case we apply all arguments and return $ coerce ()
