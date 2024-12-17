@@ -75,12 +75,6 @@ type family FirstPath api prefix where
   FirstPath a          Bottom = '[          a :> GetIntermediate]
   FirstPath a          prefix = '[prefix :> a :> GetIntermediate]
 
--- TODO: More ...
-type RelName :: k -> Symbol
-type family RelName children :: Symbol where
-  RelName ((sym :: Symbol) :> m s ct a) = sym
-  RelName (Capture sym t   :> m s ct a) = sym
-
 type family ReplaceHandler server replacement where
   ReplaceHandler (a :<|> b)  replacement = ReplaceHandler a replacement :<|> ReplaceHandler b replacement
   ReplaceHandler (a -> b)    replacement = a -> ReplaceHandler b replacement
@@ -135,6 +129,7 @@ instance
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
       ls = buildLayerLinks (Proxy @('Layer api cs)) m
+
 instance
   ( LayerLinkable api c cs m mkLink
   , api ~ Verb http s cts a
