@@ -56,39 +56,18 @@ data Top
 
 -- Creates all intermediate layers of the api and their immediate children as HATEOAS-endpoints
 -- Normalize api before for correctness
+-- TODO: Due to branching on (:<|>) it currently returns multiple layers for the same nodeApi - we need to combine them by combining their children
+-- Or even better: Solve this by construction
 type Layers :: p -> q -> [Layer]
 type family Layers api stand where
-  Layers (HttpVersion            :> b) prefix      = Layers b prefix
-  Layers (Header' _ _ _          :> b) prefix      = Layers b prefix
-  Layers (QueryParam' _ _ _      :> b) prefix      = Layers b prefix
-  Layers (QueryParams _ _        :> b) prefix      = Layers b prefix
-  Layers (QueryFlag _            :> b) prefix      = Layers b prefix
-  Layers (QueryString            :> b) prefix      = Layers b prefix
-  Layers (DeepQuery _ _          :> b) prefix      = Layers b prefix
-  Layers (Fragment _             :> b) prefix      = Layers b prefix
-  Layers (ReqBody' _ _ _         :> b) prefix      = Layers b prefix
-  Layers (RemoteHost             :> b) prefix      = Layers b prefix
-  Layers (IsSecure               :> b) prefix      = Layers b prefix
-  Layers (Vault                  :> b) prefix      = Layers b prefix
-  Layers (WithNamedContext _ _ _ :> b) prefix      = Layers b prefix
-  Layers (WithResource _         :> b) prefix      = Layers b prefix
-  Layers (BasicAuth _ _          :> b) prefix      = Layers b prefix
-  Layers (Description _          :> b) prefix      = Layers b prefix
-  Layers (Summary _              :> b) prefix      = Layers b prefix
-  Layers (a :<|> b)                    Bottom      = Layers a Bottom ++ Layers b Bottom
-  Layers (a :<|> b) (Bottom :> prefix :> Top)      = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
-  Layers (a :> b)                      Bottom      = '[ 'Layer            GetIntermediate  (FirstPath a Bottom) ] ++ Layers b (Bottom           :> a :> Top)
-  Layers (a :> b)   (Bottom :> prefix :> Top)      = '[ 'Layer (prefix :> GetIntermediate) (FirstPath a prefix) ] ++ Layers b (Bottom :> prefix :> a :> Top)
-  Layers _ _                                       = '[]
-
--- Interpreting api as a tree returning the first layers of the tree as HATEOAS-endpoint
-type FirstPath :: p -> q -> [Type]
-type family FirstPath api prefix where
-  FirstPath (a :<|> b) prefix = FirstPath a prefix ++ FirstPath b prefix
-  FirstPath (a :> _)   Bottom = '[          a :> GetIntermediate]
-  FirstPath (a :> _)   prefix = '[prefix :> a :> GetIntermediate]
-  FirstPath a          Bottom = '[          a :> GetIntermediate]
-  FirstPath a          prefix = '[prefix :> a :> GetIntermediate]
+  Layers (a :<|> b)  Bottom                   = Layers a  Bottom                   ++ Layers b  Bottom
+  Layers (a :<|> b) (Bottom :> prefix :> Top) = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
+  Layers ((a :: Symbol) :> b)  Bottom                   = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ Layers b (Bottom :>           a :> Top)
+  Layers ((a :: Symbol) :> b) (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> a :> Top)
+  Layers (Capture sym a :> b)  Bottom                   = '[ 'Layer            GetIntermediate  '[           Capture sym a :> GetIntermediate] ] ++ Layers b (Bottom :>           Capture sym a :> Top)
+  Layers (Capture sym a :> b) (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture sym a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> Capture sym a :> Top)
+  Layers (a :> b) prefix = Layers b (prefix :> a)
+  Layers _ _ = '[]
 
 type family ReplaceHandler server replacement where
   ReplaceHandler (a :<|> b)  replacement = ReplaceHandler a replacement :<|> ReplaceHandler b replacement
