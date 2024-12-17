@@ -5,6 +5,7 @@ module Servant.Hateoas.Layer where
 
 import Servant
 import Servant.Server.Internal
+import Servant.Hateoas.HasTemplateLink
 import Servant.Hateoas.Resource
 import Data.Kind
 import Data.Aeson
@@ -75,6 +76,7 @@ type family FirstPath api prefix where
   FirstPath a          prefix = '[prefix :> a :> GetIntermediate]
 
 -- TODO: More ...
+type RelName :: k -> Symbol
 type family RelName children :: Symbol where
   RelName ((sym :: Symbol) :> m s ct a) = sym
   RelName (Capture sym t   :> m s ct a) = sym
@@ -90,28 +92,69 @@ class BuildLayerLinks l m where
     ( HasLink (NodeApi l)
     , IsElem (NodeApi l) (NodeApi l)
     , MonadIO m
-    ) => Proxy l -> Proxy m -> ReplaceHandler (ServerT l m) [(String, Link)]
+    ) => Proxy l -> Proxy m -> ReplaceHandler (ServerT l m) [(String, URI)]
 
 instance
   ( mkSelf ~ MkLink api Link
   , DotDotDot mkSelf (IsFun mkSelf)
-  , Replace mkSelf [(String, Return mkSelf (IsFun mkSelf))] (IsFun mkSelf) ~ ReplaceHandler (ServerT api m) [(String, Link)]
+  , Return mkSelf (IsFun mkSelf) ~ Link
+  , Replace mkSelf [(String, URI)] (IsFun mkSelf) ~ ReplaceHandler (ServerT api m) [(String, URI)]
   ) => BuildLayerLinks ('Layer api '[]) m where
-  buildLayerLinks _ _ = (pure @[] . ("self", )) ... mkSelf
+  buildLayerLinks _ _ = (pure @[] . ("self", ) . linkURI) ... mkSelf
     where
       mkSelf = safeLink (Proxy @api) (Proxy @api)
 
-instance
-  ( HasLink c
-  , IsElem c c
-  , mkLink ~ MkLink c Link
-  , KnownSymbol (RelName c)
-  , BuildLayerLinks ('Layer api cs) m
+type LayerLinkable api c cs m mkLink =
+  ( BuildLayerLinks ('Layer api cs) m
   , DotDotDot mkLink (IsFun mkLink)
-  , ReplaceHandler (ServerT api m) [(String, Link)] ~ [(String, Return mkLink (IsFun mkLink))]
-  , Replace mkLink [(String, Return mkLink (IsFun mkLink))] (IsFun mkLink) ~ [(String, Return mkLink (IsFun mkLink))]
-  ) => BuildLayerLinks ('Layer api (c ': cs)) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @(RelName c)),)) ... mkLink
+  , ReplaceHandler (ServerT api m) [(String, URI)] ~ [(String, URI)]
+  , Replace mkLink [(String, URI)] (IsFun mkLink) ~ [(String, URI)]
+  , Return mkLink (IsFun mkLink) ~ Link
+  )
+
+instance
+  ( LayerLinkable api c cs m mkLink
+  , api ~ Verb http s cts a
+  , c ~ (next :> Verb http s cts a)
+  , mkLink ~ MkLink c Link
+  , KnownSymbol next
+  ) => BuildLayerLinks ('Layer (Verb http s cts a) (((next :: Symbol) :> Verb http s cts a) ': cs)) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @next),) . linkURI) ... mkLink
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
+      ls = buildLayerLinks (Proxy @('Layer api cs)) m
+
+instance
+  ( LayerLinkable api c cs m mkLink
+  , api ~ (prefix :> Verb http s cts a)
+  , c ~ (prefix :> next :> Verb http s cts a), IsElem c c, HasLink c
+  , mkLink ~ MkLink c Link
+  , KnownSymbol next
+  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> (next :: Symbol) :> Verb http s cts a) ': cs)) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @next),) . linkURI) ... mkLink
+    where
+      mkLink = safeLink (Proxy @c) (Proxy @c)
+      ls = buildLayerLinks (Proxy @('Layer api cs)) m
+instance
+  ( LayerLinkable api c cs m mkLink
+  , api ~ Verb http s cts a
+  , c ~ (Capture sym x :> Verb http s cts a)
+  , HasTemplateLink c
+  , (x -> mkLink) ~ MkLink c Link
+  , KnownSymbol sym
+  ) => BuildLayerLinks ('Layer (Verb http s cts a) ((Capture sym x :> Verb http s cts a) ': cs)) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . templateLink) ... toTemplateLink (Proxy @c)
+    where
+      ls = buildLayerLinks (Proxy @('Layer api cs)) m
+
+instance
+  ( LayerLinkable api c cs m mkLink
+  , api ~ (prefix :> Verb http s cts a)
+  , c ~ (prefix :> Capture sym x :> Verb http s cts a)
+  , HasTemplateLink c
+  , (x -> mkLink) ~ MkLink c Link
+  , KnownSymbol sym
+  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> Capture sym x :> Verb http s cts a) ': cs)) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . templateLink) ... toTemplateLink (Proxy @c)
+    where
       ls = buildLayerLinks (Proxy @('Layer api cs)) m
