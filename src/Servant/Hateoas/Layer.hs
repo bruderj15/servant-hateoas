@@ -9,6 +9,7 @@ import Data.Kind
 import Data.Aeson
 import Data.Coerce
 import Control.DotDotDot
+import Control.Monad.IO.Class
 import GHC.TypeLits
 
 data Layer = Layer
@@ -82,18 +83,19 @@ type family ReplaceHandler server replacement where
   ReplaceHandler (a -> b)    replacement = a -> ReplaceHandler b replacement
   ReplaceHandler _           replacement = replacement
 
-type BuildLayerLinks :: Layer -> Type -> Constraint
-class BuildLayerLinks l server where
+type BuildLayerLinks :: Layer -> (Type -> Type) -> Constraint
+class BuildLayerLinks l m where
   buildLayerLinks ::
     ( HasLink (NodeApi l)
     , IsElem (NodeApi l) (NodeApi l)
-    ) => Proxy l -> Proxy server -> ReplaceHandler server [(String, Link)]
+    , MonadIO m
+    ) => Proxy l -> Proxy m -> ReplaceHandler (ServerT l m) [(String, Link)]
 
 instance
   ( mkSelf ~ MkLink api Link
   , DotDotDot mkSelf (IsFun mkSelf)
-  , Replace mkSelf [(String, Return mkSelf (IsFun mkSelf))] (IsFun mkSelf) ~ ReplaceHandler server [(String, Link)]
-  ) => BuildLayerLinks ('Layer api '[]) server where
+  , Replace mkSelf [(String, Return mkSelf (IsFun mkSelf))] (IsFun mkSelf) ~ ReplaceHandler (ServerT api m) [(String, Link)]
+  ) => BuildLayerLinks ('Layer api '[]) m where
   buildLayerLinks _ _ = (pure @[] . ("self", )) ... mkSelf
     where
       mkSelf = safeLink (Proxy @api) (Proxy @api)
@@ -103,12 +105,12 @@ instance
   , IsElem c c
   , mkLink ~ MkLink c Link
   , KnownSymbol (RelName c)
-  , BuildLayerLinks ('Layer api cs) server
+  , BuildLayerLinks ('Layer api cs) m
   , DotDotDot mkLink (IsFun mkLink)
-  , ReplaceHandler server [(String, Link)] ~ [(String, Return mkLink (IsFun mkLink))]
+  , ReplaceHandler (ServerT api m) [(String, Link)] ~ [(String, Return mkLink (IsFun mkLink))]
   , Replace mkLink [(String, Return mkLink (IsFun mkLink))] (IsFun mkLink) ~ [(String, Return mkLink (IsFun mkLink))]
-  ) => BuildLayerLinks ('Layer api (c ': cs)) server where
-  buildLayerLinks _ server = ((: ls) . (symbolVal (Proxy @(RelName c)),)) ... mkLink
+  ) => BuildLayerLinks ('Layer api (c ': cs)) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @(RelName c)),)) ... mkLink
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
-      ls = buildLayerLinks (Proxy @('Layer api cs)) server
+      ls = buildLayerLinks (Proxy @('Layer api cs)) m

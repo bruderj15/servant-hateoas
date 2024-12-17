@@ -19,7 +19,7 @@ type UserGetOne = "user" :> Capture "id" Int :> Get '[JSON] User
 type UserGetAll = "user" :> Get '[JSON] [User]
 
 instance HasHandler UserGetOne where
-  getHandler _ _ = \uId -> return (User uId 1 1000)
+  getHandler _ _ = \uId -> return $ User uId 1 1000
 
 instance HasHandler UserGetAll where
   getHandler _ _ = return [User 1 1 1000, User 2 1 2000]
@@ -36,7 +36,8 @@ userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 -- hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
 hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(UserApi))
 
+hateoasUserApiLayerServer :: Handler (HALResource Intermediate) :<|> Tagged Handler EmptyServer
 hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(Layers (Normalize UserGetAll) Bottom))
 
--- testApp :: Application
--- testApp = serve (Proxy @(LayerApi (Layers UserApi Bottom (HAL JSON)))) hateoasUserApiLayerServer
+testApp :: Application
+testApp = serve (Proxy @((Resourcify (Layers (Normalize UserGetAll) Bottom)) (HAL JSON))) hateoasUserApiLayerServer

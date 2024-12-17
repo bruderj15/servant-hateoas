@@ -58,12 +58,12 @@ instance {-# OVERLAPPING #-}
   , res ~ MkResource ct
   , buildFun ~ ReplaceHandler rServer [(String, Link)]
   , Resource res
-  , BuildLayerLinks (Resourcify l ct) rServer
+  , BuildLayerLinks (Resourcify l ct) m
   , DotDotDot buildFun (IsFun buildFun)
   , Return buildFun (IsFun buildFun) ~ [(String, Link)]
   , Replace buildFun (m (res Intermediate)) (IsFun buildFun) ~ rServer
   ) => HasResourceServer ('Layer api cs) m ct where
-  getResourceServer _ _ _ = (return @m . foldr addLink (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) (Proxy @rServer)
+  getResourceServer m _ _ = (return @m . foldr addLink (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) m
 
 instance {-# OVERLAPPING #-} HasResourceServer ('[] :: [Layer]) m ct where
   getResourceServer _ _ _ = emptyServer
@@ -74,6 +74,6 @@ instance {-# OVERLAPPING #-}
   , HasResourceServer l m ct
   , HasLink (NodeApi l)
   , IsElem (NodeApi l) (NodeApi l)
-  , BuildLayerLinks (Resourcify l ct) (ResourcifyServer (ServerT l m) ct m)
+  , BuildLayerLinks (Resourcify l ct) m
   ) => HasResourceServer (l ': ls) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @l) :<|> getResourceServer m ct (Proxy @ls)
