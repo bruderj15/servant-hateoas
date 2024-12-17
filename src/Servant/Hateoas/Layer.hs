@@ -153,3 +153,5 @@ instance
   buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . templateLink) ... toTemplateLink (Proxy @c)
     where
       ls = buildLayerLinks (Proxy @('Layer api cs)) m
+
+-- TODO: We need instances for all the other combinators as well
