@@ -4,6 +4,7 @@
 module Servant.Hateoas.Layer where
 
 import Servant
+import Servant.Server.Internal
 import Servant.Hateoas.Resource
 import Data.Kind
 import Data.Aeson
@@ -33,10 +34,10 @@ instance HasServer ('[] :: [Layer]) context where
   route _ = route (Proxy @EmptyAPI)
   hoistServerWithContext _ = hoistServerWithContext (Proxy @EmptyAPI)
 
-instance HasServer (l ': ls :: [Layer]) context where
+instance (HasServer l context, HasServer ls context) => HasServer (l ': ls :: [Layer]) context where
   type ServerT (l ': ls) m = ServerT l m :<|> ServerT ls m
-  route _ = route (Proxy @(l ': ls))
-  hoistServerWithContext _ = hoistServerWithContext (Proxy @(l ': ls))
+  route _ ctx delayed = route (Proxy @l) ctx ((\(sl :<|> _) -> sl) <$> delayed) `choice` route (Proxy @ls) ctx ((\(_ :<|> sls) -> sls) <$> delayed)
+  hoistServerWithContext _ ctx f (sl :<|> sls) = hoistServerWithContext (Proxy @l) ctx f sl :<|> hoistServerWithContext (Proxy @ls) ctx f sls
 
 newtype Intermediate = Intermediate ()
   deriving newtype (Show, Eq, Ord, ToJSON)
