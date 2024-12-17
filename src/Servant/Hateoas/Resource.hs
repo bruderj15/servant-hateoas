@@ -16,10 +16,10 @@ class Resource res where
   wrap :: a -> res a
 
   -- | Add a relation @(rel, link)@ to a resource.
-  addLink :: (String, Link) -> res a -> res a
+  addRel :: (String, URI) -> res a -> res a
 
-addSelfLink :: Resource res => Link -> res a -> res a
-addSelfLink l = addLink ("self", l)
+addSelfRel :: Resource res => URI -> res a -> res a
+addSelfRel l = addRel ("self", l)
 
 -- | Class for 'Resource's that can embed other resources.
 class Resource res => EmbeddingResource res where
