@@ -27,6 +27,10 @@ data RelationParam = RelationParam
 mkPlaceHolder :: Text -> Text
 mkPlaceHolder s = "{" <> s <> "}"
 
+appendPath :: Text -> Text -> Text
+appendPath l "" = l
+appendPath l r = l <> "/" <> r
+
 instance ToJSON RelationLink where
   toJSON (RelationLink path params templated _) = String $
     if templated
@@ -40,17 +44,17 @@ instance HasRelationLink b => HasRelationLink (EmptyAPI :> b) where
   toRelationLink _ = toRelationLink (Proxy @b)
 
 instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink ((sym :: Symbol) :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix <> "/" <> _path rl }
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
     where
       prefix = fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Capture' mods sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix <> "/" <> _path rl }
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (CaptureAll sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix <> "/" <> _path rl }
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
