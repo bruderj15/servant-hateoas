@@ -53,22 +53,26 @@ type (++) xs ys = AppendList xs ys
 -- This is crucial so we can match paths (:: Symbol) and potential other-kinded combinators
 data Boundary
 
+type MkLayers :: p -> [Layer]
+type family MkLayers api where
+  MkLayers api = GoLayers api Boundary
+
 -- Creates all intermediate layers of the api and their immediate children as HATEOAS-endpoints
 -- Normalize api before for correctness
 -- TODO: Due to branching on (:<|>) it currently returns multiple layers for the same nodeApi - we need to combine them by combining their children
 -- Or even better: Solve this by construction
-type Layers :: p -> q -> [Layer]
-type family Layers api stand where
-  Layers (a :<|> b)  Boundary                   = Layers a  Boundary                   ++ Layers b  Boundary
-  Layers (a :<|> b) (Boundary :> prefix :> Boundary) = Layers a (Boundary :> prefix :> Boundary) ++ Layers b (Boundary :> prefix :> Boundary)
-  Layers ((a :: Symbol)       :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ Layers b (Boundary :>           a :> Boundary)
-  Layers ((a :: Symbol)       :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ Layers b (Boundary :> prefix :> a :> Boundary)
-  Layers (Capture' mods sym a :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Boundary :>           Capture' mods sym a :> Boundary)
-  Layers (Capture' mods sym a :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Boundary :> prefix :> Capture' mods sym a :> Boundary)
-  Layers (CaptureAll sym a    :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Boundary :>           CaptureAll sym a    :> Boundary)
-  Layers (CaptureAll sym a    :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Boundary :> prefix :> CaptureAll sym a    :> Boundary)
-  Layers (a :> b) prefix = Layers b (prefix :> a)
-  Layers _ _ = '[]
+type GoLayers :: p -> q -> [Layer]
+type family GoLayers api stand where
+  GoLayers (a :<|> b)  Boundary                   = GoLayers a  Boundary                   ++ GoLayers b  Boundary
+  GoLayers (a :<|> b) (Boundary :> prefix :> Boundary) = GoLayers a (Boundary :> prefix :> Boundary) ++ GoLayers b (Boundary :> prefix :> Boundary)
+  GoLayers ((a :: Symbol)       :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ GoLayers b (Boundary :>           a :> Boundary)
+  GoLayers ((a :: Symbol)       :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ GoLayers b (Boundary :> prefix :> a :> Boundary)
+  GoLayers (Capture' mods sym a :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           Capture' mods sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :>           Capture' mods sym a :> Boundary)
+  GoLayers (Capture' mods sym a :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture' mods sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :> prefix :> Capture' mods sym a :> Boundary)
+  GoLayers (CaptureAll sym a    :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           CaptureAll    sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :>           CaptureAll sym a    :> Boundary)
+  GoLayers (CaptureAll sym a    :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> CaptureAll    sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :> prefix :> CaptureAll sym a    :> Boundary)
+  GoLayers (a :> b) prefix = GoLayers b (prefix :> a)
+  GoLayers _ _ = '[]
 
 type family ReplaceHandler server replacement where
   ReplaceHandler (a :<|> b)  replacement = ReplaceHandler a replacement :<|> ReplaceHandler b replacement
