@@ -11,7 +11,6 @@ where
 import Servant.Hateoas.Resource
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
-import Servant.Links
 import qualified Data.Foldable as Foldable
 import Data.Some.Constraint
 import Data.Kind
@@ -30,7 +29,7 @@ type instance MkResource (HAL t) = HALResource
 -- | Resource wrapper for HAL.
 data HALResource a = HALResource
   { resource :: a                                       -- ^ Wrapped resource
-  , rels     :: [(String, URI)]                        -- ^ Pairs @(rel, link)@ for relations
+  , rels     :: [(String, ResourceLink)]                        -- ^ Pairs @(rel, link)@ for relations
   , embedded :: [(String, SomeF HALResource ToJSON)]    -- ^ Pairs @(rel, resource)@ for embedded resources
   } deriving (Generic, Functor)
 

@@ -28,7 +28,7 @@ type instance MkResource (Collection t) = CollectionResource
 data CollectionResource a = CollectionResource
   { href  :: Maybe URI                   -- ^ Link to the collection
   , items :: [CollectionItem a]          -- ^ All items in the collection
-  , rels  :: [(String, URI)]             -- ^ Pairs @(rel, link)@ for relations
+  , rels  :: [(String, ResourceLink)]    -- ^ Pairs @(rel, link)@ for relations
   } deriving (Show, Generic, Functor)
 
 instance Semigroup (CollectionResource a) where
@@ -40,7 +40,7 @@ instance Monoid (CollectionResource a) where
 -- | A single item inside a 'CollectionResource'.
 data CollectionItem a = CollectionItem
   { item :: a                             -- ^ Wrapped item
-  , itemLinks :: [(String, URI)]         -- ^ Links for the wrapped item
+  , itemLinks :: [(String, ResourceLink)]         -- ^ Links for the wrapped item
   } deriving (Show, Generic, Functor)
 
 instance Resource CollectionResource where
@@ -57,7 +57,7 @@ instance Accept (Collection JSON) where
 instance ToJSON a => MimeRender (Collection JSON) (CollectionResource a) where
   mimeRender _ = encode
 
-collectionLinks :: [(String, URI)] -> Value
+collectionLinks :: [(String, ResourceLink)] -> Value
 collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= l]) <> xs) mempty
 
 instance ToJSON a => ToJSON (CollectionItem a) where

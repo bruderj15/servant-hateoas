@@ -5,20 +5,27 @@
 module Servant.Hateoas.Resource where
 
 import Servant
+import Servant.Hateoas.HasRelationLink
 import Data.Kind
 import Data.Aeson
 
 -- | Type family computing the Resource-Type belonging to this Content-Type.
 type family MkResource ct :: (Type -> Type)
 
+data ResourceLink = CompleteLink Link | TemplateLink RelationLink deriving (Show)
+
+instance ToJSON ResourceLink where
+  toJSON (CompleteLink l) = toJSON $ linkURI l
+  toJSON (TemplateLink l) = toJSON l
+
 -- | Class for resources that carry Hypermedia-Relations.
 class Resource res where
   wrap :: a -> res a
 
   -- | Add a relation @(rel, link)@ to a resource.
-  addRel :: (String, URI) -> res a -> res a
+  addRel :: (String, ResourceLink) -> res a -> res a
 
-addSelfRel :: Resource res => URI -> res a -> res a
+addSelfRel :: Resource res => ResourceLink -> res a -> res a
 addSelfRel l = addRel ("self", l)
 
 -- | Class for 'Resource's that can embed other resources.
