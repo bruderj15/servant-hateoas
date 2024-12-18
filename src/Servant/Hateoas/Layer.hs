@@ -62,10 +62,12 @@ type Layers :: p -> q -> [Layer]
 type family Layers api stand where
   Layers (a :<|> b)  Bottom                   = Layers a  Bottom                   ++ Layers b  Bottom
   Layers (a :<|> b) (Bottom :> prefix :> Top) = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
-  Layers ((a :: Symbol) :> b)  Bottom                   = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ Layers b (Bottom :>           a :> Top)
-  Layers ((a :: Symbol) :> b) (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> a :> Top)
-  Layers (Capture sym a :> b)  Bottom                   = '[ 'Layer            GetIntermediate  '[           Capture sym a :> GetIntermediate] ] ++ Layers b (Bottom :>           Capture sym a :> Top)
-  Layers (Capture sym a :> b) (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture sym a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> Capture sym a :> Top)
+  Layers ((a :: Symbol) :> b)  Bottom                         = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ Layers b (Bottom :>           a :> Top)
+  Layers ((a :: Symbol) :> b) (Bottom :> prefix :> Top)       = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> a :> Top)
+  Layers (Capture' mods sym a :> b)  Bottom                   = '[ 'Layer            GetIntermediate  '[           Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Bottom :>           Capture' mods sym a :> Top)
+  Layers (Capture' mods sym a :> b) (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> Capture' mods sym a :> Top)
+  Layers (CaptureAll sym a :> b)  Bottom                      = '[ 'Layer            GetIntermediate  '[           CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Bottom :>           CaptureAll sym a    :> Top)
+  Layers (CaptureAll sym a :> b) (Bottom :> prefix :> Top)    = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> CaptureAll sym a    :> Top)
   Layers (a :> b) prefix = Layers b (prefix :> a)
   Layers _ _ = '[]
 
@@ -127,11 +129,11 @@ instance
 instance
   ( LayerLinkable api c cs m mkLink
   , api ~ Verb http s cts a
-  , c ~ (Capture sym x :> Verb http s cts a)
+  , c ~ (Capture' mods sym x :> Verb http s cts a)
   , HasTemplateLink c
   , (x -> mkLink) ~ MkLink c Link
   , KnownSymbol sym
-  ) => BuildLayerLinks ('Layer (Verb http s cts a) ((Capture sym x :> Verb http s cts a) ': cs)) m where
+  ) => BuildLayerLinks ('Layer (Verb http s cts a) ((Capture' mods sym x :> Verb http s cts a) ': cs)) m where
   buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . templateLink) ... toTemplateLink (Proxy @c)
     where
       ls = buildLayerLinks (Proxy @('Layer api cs)) m
@@ -139,13 +141,35 @@ instance
 instance
   ( LayerLinkable api c cs m mkLink
   , api ~ (prefix :> Verb http s cts a)
-  , c ~ (prefix :> Capture sym x :> Verb http s cts a)
+  , c ~ (prefix :> Capture' mods sym x :> Verb http s cts a)
   , HasTemplateLink c
   , (x -> mkLink) ~ MkLink c Link
   , KnownSymbol sym
-  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> Capture sym x :> Verb http s cts a) ': cs)) m where
+  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> Capture' mods sym x :> Verb http s cts a) ': cs)) m where
   buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . templateLink) ... toTemplateLink (Proxy @c)
     where
       ls = buildLayerLinks (Proxy @('Layer api cs)) m
 
--- TODO: We need instances for all the other combinators as well
+instance
+  ( LayerLinkable api c cs m mkLink
+  , api ~ Verb http s cts a
+  , c ~ (CaptureAll sym x :> Verb http s cts a)
+  , HasTemplateLink c
+  , (x -> mkLink) ~ MkLink c Link
+  , KnownSymbol sym
+  ) => BuildLayerLinks ('Layer (Verb http s cts a) ((CaptureAll sym x :> Verb http s cts a) ': cs)) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . templateLink) ... toTemplateLink (Proxy @c)
+    where
+      ls = buildLayerLinks (Proxy @('Layer api cs)) m
+
+instance
+  ( LayerLinkable api c cs m mkLink
+  , api ~ (prefix :> Verb http s cts a)
+  , c ~ (prefix :> CaptureAll sym x :> Verb http s cts a)
+  , HasTemplateLink c
+  , (x -> mkLink) ~ MkLink c Link
+  , KnownSymbol sym
+  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> CaptureAll sym x :> Verb http s cts a) ': cs)) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . templateLink) ... toTemplateLink (Proxy @c)
+    where
+      ls = buildLayerLinks (Proxy @('Layer api cs)) m
