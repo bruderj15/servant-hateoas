@@ -49,10 +49,9 @@ instance Resource res => ToResource res Intermediate where
 
 type (++) xs ys = AppendList xs ys
 
--- Wrapping api in: Bottom :> api :> Top, so api has kind k and not Type.
+-- Wrapping api in: Boundary :> api :> Boundary, so api has kind k and not Type.
 -- This is crucial so we can match paths (:: Symbol) and potential other-kinded combinators
-data Bottom
-data Top
+data Boundary
 
 -- Creates all intermediate layers of the api and their immediate children as HATEOAS-endpoints
 -- Normalize api before for correctness
@@ -60,14 +59,14 @@ data Top
 -- Or even better: Solve this by construction
 type Layers :: p -> q -> [Layer]
 type family Layers api stand where
-  Layers (a :<|> b)  Bottom                   = Layers a  Bottom                   ++ Layers b  Bottom
-  Layers (a :<|> b) (Bottom :> prefix :> Top) = Layers a (Bottom :> prefix :> Top) ++ Layers b (Bottom :> prefix :> Top)
-  Layers ((a :: Symbol) :> b)  Bottom                         = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ Layers b (Bottom :>           a :> Top)
-  Layers ((a :: Symbol) :> b) (Bottom :> prefix :> Top)       = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> a :> Top)
-  Layers (Capture' mods sym a :> b)  Bottom                   = '[ 'Layer            GetIntermediate  '[           Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Bottom :>           Capture' mods sym a :> Top)
-  Layers (Capture' mods sym a :> b) (Bottom :> prefix :> Top) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> Capture' mods sym a :> Top)
-  Layers (CaptureAll sym a :> b)  Bottom                      = '[ 'Layer            GetIntermediate  '[           CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Bottom :>           CaptureAll sym a    :> Top)
-  Layers (CaptureAll sym a :> b) (Bottom :> prefix :> Top)    = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Bottom :> prefix :> CaptureAll sym a    :> Top)
+  Layers (a :<|> b)  Boundary                   = Layers a  Boundary                   ++ Layers b  Boundary
+  Layers (a :<|> b) (Boundary :> prefix :> Boundary) = Layers a (Boundary :> prefix :> Boundary) ++ Layers b (Boundary :> prefix :> Boundary)
+  Layers ((a :: Symbol)       :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ Layers b (Boundary :>           a :> Boundary)
+  Layers ((a :: Symbol)       :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ Layers b (Boundary :> prefix :> a :> Boundary)
+  Layers (Capture' mods sym a :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Boundary :>           Capture' mods sym a :> Boundary)
+  Layers (Capture' mods sym a :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture' mods sym a :> GetIntermediate] ] ++ Layers b (Boundary :> prefix :> Capture' mods sym a :> Boundary)
+  Layers (CaptureAll sym a    :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Boundary :>           CaptureAll sym a    :> Boundary)
+  Layers (CaptureAll sym a    :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> CaptureAll    sym a :> GetIntermediate] ] ++ Layers b (Boundary :> prefix :> CaptureAll sym a    :> Boundary)
   Layers (a :> b) prefix = Layers b (prefix :> a)
   Layers _ _ = '[]
 
