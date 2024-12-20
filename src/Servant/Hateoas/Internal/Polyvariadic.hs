@@ -25,6 +25,7 @@ instance (PolyvariadicComp b (IsFun b)) => PolyvariadicComp (a -> b) 'True where
 
 (...) :: (PolyvariadicComp f b, IsFun f ~ b) => (Return f b -> r) -> f -> Replace f r b
 (...) = pcomp
+infixr 9 ...
 
 class (b ~ IsFun f, b ~ IsFun g) => PolyvariadicComp2 f g b where
   type Return2  f g   b :: Type
