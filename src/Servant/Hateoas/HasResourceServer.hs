@@ -6,8 +6,8 @@ import Servant
 import Servant.Hateoas.Layer
 import Servant.Hateoas.Resource
 import Servant.Hateoas.HasHandler
+import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
-import Control.DotDotDot
 import Control.Monad.IO.Class
 
 -- Wrap response type with the content-types resource.
@@ -36,19 +36,22 @@ class HasResourceServer api m ct where
 instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
 
--- TODO: We should create and add the self-link here
--- Easy if we figure out how to consume all the inputs twice
 instance
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
+  , mkLink ~ MkLink api Link
   , res ~ MkResource ct
+  , Resource res
   , ToResource res a
   , HasHandler api
-  , DotDotDot server (IsFun server)
-  , Return server (IsFun server) ~ m a
-  , Replace server (m (res a)) (IsFun server) ~ ResourcifyServer server ct m
+  , HasLink api, IsElem api api
+  , PolyvariadicComp2 server mkLink (IsFun server)
+  , Return2 server mkLink (IsFun server) ~ (m a, Link)
+  , Replace2 server mkLink (m (res a)) (IsFun mkLink) ~ ResourcifyServer server ct m
   ) => HasResourceServer api m ct where
-  getResourceServer m _ api = fmap (toResource (Proxy @res)) ... getHandler m api
+  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel (CompleteLink self) . toResource (Proxy @res)) <$> ma)) (getHandler m api) mkSelf
+    where
+      mkSelf = safeLink api api
 
 instance {-# OVERLAPPING #-}
   ( l ~ 'Layer api cs
@@ -61,7 +64,7 @@ instance {-# OVERLAPPING #-}
   , buildFun ~ ReplaceHandler rServer [(String, ResourceLink)]
   , Resource res
   , BuildLayerLinks (Resourcify l ct) m
-  , DotDotDot buildFun (IsFun buildFun)
+  , PolyvariadicComp buildFun (IsFun buildFun)
   , Return buildFun (IsFun buildFun) ~ [(String, ResourceLink)]
   , Replace buildFun (m (res Intermediate)) (IsFun buildFun) ~ rServer
   ) => HasResourceServer ('Layer api cs) m ct where

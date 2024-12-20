@@ -5,12 +5,12 @@ module Servant.Hateoas.Layer where
 
 import Servant
 import Servant.Server.Internal
-import Servant.Hateoas.HasRelationLink
 import Servant.Hateoas.Resource
+import Servant.Hateoas.HasRelationLink
+import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
 import Data.Aeson
 import Data.Coerce
-import Control.DotDotDot
 import Control.Monad.IO.Class
 import GHC.TypeLits
 
@@ -89,7 +89,7 @@ class BuildLayerLinks l m where
 
 instance
   ( mkSelf ~ MkLink api Link
-  , DotDotDot mkSelf (IsFun mkSelf)
+  , PolyvariadicComp mkSelf (IsFun mkSelf)
   , Return mkSelf (IsFun mkSelf) ~ Link
   , Replace mkSelf [(String, ResourceLink)] (IsFun mkSelf) ~ ReplaceHandler (ServerT api m) [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer api '[]) m where
@@ -99,7 +99,7 @@ instance
 
 type LayerLinkable api c cs m mkLink =
   ( BuildLayerLinks ('Layer api cs) m
-  , DotDotDot mkLink (IsFun mkLink)
+  , PolyvariadicComp mkLink (IsFun mkLink)
   , ReplaceHandler (ServerT api m) [(String, ResourceLink)] ~ [(String, ResourceLink)]
   , Replace mkLink [(String, ResourceLink)] (IsFun mkLink) ~ [(String, ResourceLink)]
   , Return mkLink (IsFun mkLink) ~ Link
