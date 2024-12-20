@@ -53,9 +53,17 @@ type (++) xs ys = AppendList xs ys
 -- This is crucial so we can match paths (:: Symbol) and potential other-kinded combinators
 data Boundary
 
+-- Make api a tree with shared prefixes - making every choice unambiguous
+type family Normalize api where
+  Normalize ((prefix :> a) :<|> (prefix :> b)) = Normalize (prefix :> (Normalize a :<|> Normalize b))
+  Normalize (a :<|> b)                         = Normalize a :<|> Normalize b
+  Normalize ((prefix :> a) :>   (prefix :> b)) = Normalize (prefix :> (Normalize a :>   Normalize b))
+  Normalize (a :> b)                           = a :> Normalize b
+  Normalize a                                  = a
+
 type MkLayers :: p -> [Layer]
 type family MkLayers api where
-  MkLayers api = GoLayers api Boundary
+  MkLayers api = GoLayers (Normalize api) Boundary
 
 -- Creates all intermediate layers of the api and their immediate children as HATEOAS-endpoints
 -- Normalize api before for correctness

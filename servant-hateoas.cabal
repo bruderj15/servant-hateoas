@@ -30,7 +30,6 @@ library
 
     exposed-modules:     Servant.Hateoas
                        , Servant.Hateoas.Layer
-                       , Servant.Hateoas.Rewrite
                        , Servant.Hateoas.Resource
                        , Servant.Hateoas.HasHandler
                        , Servant.Hateoas.HasRelationLink

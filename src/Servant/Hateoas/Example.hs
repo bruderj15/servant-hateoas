@@ -4,8 +4,6 @@
 module Servant.Hateoas.Example where
 
 import Servant.Hateoas
-import Servant.Hateoas.Layer
-import Servant.Hateoas.Rewrite
 import Servant
 import Data.Aeson
 import GHC.Generics
@@ -27,19 +25,12 @@ instance HasHandler UserGetAll where
 userApiServer :: Server UserApi
 userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 
--- Custom instance for @ToResource@
--- instance ToResource HALResource User where
---   toResource _ u = HALResource u [("self", mkLink $ usrId u)] []
---     where
---       mkLink = safeLink (Proxy @UserApi) (Proxy @UserGetOne)
-
--- hateoasUserApiServer :: Server (Resourcify UserApi (HAL JSON))
 hateoasUserApiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(UserApi))
 
-hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(MkLayers (Normalize UserApi)))
+hateoasUserApiLayerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(MkLayers UserApi))
 
 layerApp :: Application
-layerApp = serve (Proxy @((Resourcify (MkLayers (Normalize UserApi))) (HAL JSON))) hateoasUserApiLayerServer
+layerApp = serve (Proxy @((Resourcify (MkLayers UserApi)) (HAL JSON))) hateoasUserApiLayerServer
 
 userApiApp :: Application
-userApiApp = serve (Proxy @((Resourcify (Normalize UserApi)) (HAL JSON))) hateoasUserApiServer
+userApiApp = serve (Proxy @((Resourcify UserApi) (HAL JSON))) hateoasUserApiServer
