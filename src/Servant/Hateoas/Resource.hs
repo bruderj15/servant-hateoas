@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Servant.Hateoas.Resource where
 
@@ -15,8 +15,8 @@ type family MkResource ct :: (Type -> Type)
 data ResourceLink = CompleteLink Link | TemplateLink RelationLink deriving (Show)
 
 instance ToJSON ResourceLink where
-  toJSON (CompleteLink l) = toJSON $ linkURI l
-  toJSON (TemplateLink l) = toJSON l
+  toJSON (CompleteLink l) = let uri = linkURI l in toJSON $ uri { uriPath = "/" <> uriPath uri }
+  toJSON (TemplateLink l) = toJSON $ l { _path = "/" <> _path l }
 
 -- | Class for resources that carry Hypermedia-Relations.
 class Resource res where
