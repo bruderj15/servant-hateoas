@@ -37,6 +37,7 @@ library
                        , Servant.Hateoas.HasResourceServer
                        , Servant.Hateoas.ContentType.HAL
                        , Servant.Hateoas.ContentType.Collection
+                       , Servant.Hateoas.Internal.Polyvariadic
 
     other-modules:       Servant.Hateoas.Example
 
@@ -48,7 +49,6 @@ library
                        , servant-server                >= 0.20.2   && < 0.21
                        , singleton-bool                >= 0.1.4    && < 0.2
                        , constrained-some              >= 0.1.0    && < 0.2
-                       , control-dotdotdot             >= 0.1.0.1  && < 0.1.0.2
     hs-source-dirs:      src
     default-language:    GHC2021
     default-extensions:  DataKinds, TypeFamilies
