@@ -15,20 +15,27 @@ import Control.Monad.IO.Class
 import GHC.TypeLits
 
 data Layer = Layer
-  { nodeApi      :: Type      -- relative path from host to this layer:                     e.g.  /api/users
-  , childrenApis :: [Type]    -- immediate relative children paths of this layer from host: e.g. [/api/users/1, ...]
+  { api              :: [Type]
+  , relativeChildren :: [Type]
+  , verb             :: Type
   }
 
-type family NodeApi (a :: Layer) where
-  NodeApi ('Layer api _) = api
+type family LayerApiCs (a :: Layer) where
+  LayerApiCs ('Layer api _ _) = api
 
-type family ChildrenApis (a :: Layer) where
-  ChildrenApis ('Layer _ children) = children
+type family RelativeChildren (a :: Layer) where
+  RelativeChildren ('Layer _ children _) = children
 
-instance HasServer api context => HasServer ('Layer api cs) context where
-  type ServerT ('Layer api cs) m = ServerT api m
-  route _ = route (Proxy @api)
-  hoistServerWithContext _ = hoistServerWithContext (Proxy @api)
+type family LayerVerb (a :: Layer) where
+  LayerVerb ('Layer _ _ verb) = verb
+
+type family LayerApi (a :: Layer) where
+  LayerApi ('Layer api _ verb) = MkPrefix api verb
+
+instance HasServer (MkPrefix apiCs verb) context => HasServer ('Layer apiCs cs verb) context where
+  type ServerT ('Layer apiCs cs verb) m = ServerT (MkPrefix apiCs verb) m
+  route _ = route (Proxy @(MkPrefix apiCs verb))
+  hoistServerWithContext _ = hoistServerWithContext (Proxy @(MkPrefix apiCs verb))
 
 instance HasServer ('[] :: [Layer]) context where
   type ServerT '[] m = ServerT EmptyAPI m
@@ -49,10 +56,6 @@ instance Resource res => ToResource res Intermediate where
 
 type (++) xs ys = AppendList xs ys
 
--- Wrapping api in: Boundary :> api :> Boundary, so api has kind k and not Type.
--- This is crucial so we can match paths (:: Symbol) and potential other-kinded combinators
-data Boundary
-
 -- Make api a tree with shared prefixes - making every choice unambiguous
 type family Normalize api where
   Normalize ((prefix :> a) :<|> (prefix :> b)) = Normalize (prefix :> (Normalize a :<|> Normalize b))
@@ -63,24 +66,62 @@ type family Normalize api where
 
 type MkLayers :: p -> [Layer]
 type family MkLayers api where
-  MkLayers api = GoLayers (Normalize api) Boundary
+  MkLayers api = MergeLayers (GoLayers (Normalize (Symify api)) '[]) '[]
+
+type MergeLayers :: [Layer] -> [Layer] -> [Layer]
+type family MergeLayers ls acc where
+  MergeLayers '[] acc = acc
+  MergeLayers (l ': ls) acc = MergeLayers ls (
+      If (ContainsLayerApi acc (LayerApiCs l))
+      (WithAllChildrenOfLayerApi acc l)
+        (l ': acc)
+      )
+
+type family ContainsLayerApi ls api where
+  ContainsLayerApi '[] _ = 'False
+  ContainsLayerApi ('Layer api _ _ ': ls) api = 'True
+  ContainsLayerApi (_ ': ls) api = ContainsLayerApi ls api
+
+type family WithAllChildrenOfLayerApi ls l where
+  WithAllChildrenOfLayerApi '[] _ = '[]
+  WithAllChildrenOfLayerApi (('Layer api cs verb) ': ls) ('Layer api cs' verb) = 'Layer api (cs ++ cs') verb ': ls
+  WithAllChildrenOfLayerApi (l ': ls) l' = l ': WithAllChildrenOfLayerApi ls l'
+
+data Sym (sym :: Symbol)
+
+instance (HasServer api context, KnownSymbol sym) => HasServer (Sym sym :> api) context where
+  type ServerT (Sym sym :> api) m = ServerT (sym :> api) m
+  route _ = route (Proxy @(sym :> api))
+  hoistServerWithContext _ = hoistServerWithContext (Proxy @(sym :> api))
+
+instance (HasLink api, KnownSymbol sym) => HasLink (Sym sym :> api) where
+  type MkLink (Sym sym :> api) link = MkLink (sym :> api) link
+  toLink f _ = toLink f (Proxy @(sym :> api))
+
+type family Symify api where
+  Symify (a :<|> b) = Symify a :<|> Symify b
+  Symify ((sym :: Symbol) :> b) = Sym sym :> Symify b
+  Symify (a :> b) = a :> Symify b
+  Symify a = a
 
 -- Creates all intermediate layers of the api and their immediate children as HATEOAS-endpoints
 -- Normalize api before for correctness
 -- TODO: Due to branching on (:<|>) it currently returns multiple layers for the same nodeApi - we need to combine them by combining their children
 -- Or even better: Solve this by construction
-type GoLayers :: p -> q -> [Layer]
+type GoLayers :: p -> [Type] -> [Layer]
 type family GoLayers api stand where
-  GoLayers (a :<|> b)  Boundary                   = GoLayers a  Boundary                   ++ GoLayers b  Boundary
-  GoLayers (a :<|> b) (Boundary :> prefix :> Boundary) = GoLayers a (Boundary :> prefix :> Boundary) ++ GoLayers b (Boundary :> prefix :> Boundary)
-  GoLayers ((a :: Symbol)       :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           a :> GetIntermediate] ] ++ GoLayers b (Boundary :>           a :> Boundary)
-  GoLayers ((a :: Symbol)       :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> a :> GetIntermediate] ] ++ GoLayers b (Boundary :> prefix :> a :> Boundary)
-  GoLayers (Capture' mods sym a :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           Capture' mods sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :>           Capture' mods sym a :> Boundary)
-  GoLayers (Capture' mods sym a :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> Capture' mods sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :> prefix :> Capture' mods sym a :> Boundary)
-  GoLayers (CaptureAll sym a    :> b)  Boundary                        = '[ 'Layer            GetIntermediate  '[           CaptureAll    sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :>           CaptureAll sym a    :> Boundary)
-  GoLayers (CaptureAll sym a    :> b) (Boundary :> prefix :> Boundary) = '[ 'Layer (prefix :> GetIntermediate) '[ prefix :> CaptureAll    sym a :> GetIntermediate] ] ++ GoLayers b (Boundary :> prefix :> CaptureAll sym a    :> Boundary)
-  GoLayers (a :> b) prefix = GoLayers b (prefix :> a)
+  GoLayers (a :<|> b)                 prefix = GoLayers a prefix ++ GoLayers b prefix
+  GoLayers (Sym a               :> b) prefix = '[ 'Layer prefix '[Sym a]               GetIntermediate ] ++ GoLayers b (prefix ++ '[Sym a])
+  GoLayers (Capture' mods sym a :> b) prefix = '[ 'Layer prefix '[Capture' mods sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[Capture' mods sym a])
+  GoLayers (CaptureAll sym a    :> b) prefix = '[ 'Layer prefix '[CaptureAll    sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[CaptureAll    sym a])
+  GoLayers (a :> b)                   prefix = GoLayers b (prefix ++ '[a])
   GoLayers _ _ = '[]
+
+type MkPrefix :: [Type] -> Type -> Type
+type family MkPrefix prefix api where
+  MkPrefix (Sym x      ': xs) api = x :> MkPrefix xs api
+  MkPrefix (x          ': xs) api = x :> MkPrefix xs api
+  MkPrefix '[]                api = api
 
 type family ReplaceHandler server replacement where
   ReplaceHandler (a :<|> b)  replacement = ReplaceHandler a replacement :<|> ReplaceHandler b replacement
@@ -89,98 +130,58 @@ type family ReplaceHandler server replacement where
 
 type BuildLayerLinks :: Layer -> (Type -> Type) -> Constraint
 class BuildLayerLinks l m where
-  buildLayerLinks ::
-    ( HasLink (NodeApi l)
-    , IsElem (NodeApi l) (NodeApi l)
-    , MonadIO m
-    ) => Proxy l -> Proxy m -> ReplaceHandler (ServerT l m) [(String, ResourceLink)]
+  buildLayerLinks :: MonadIO m => Proxy l -> Proxy m -> ReplaceHandler (ServerT l m) [(String, ResourceLink)]
 
 instance
-  ( mkSelf ~ MkLink api Link
+  ( api ~ MkPrefix apiCs verb
+  , HasLink api, IsElem api api
+  , mkSelf ~ MkLink api Link
   , PolyvariadicComp mkSelf (IsFun mkSelf)
   , Return mkSelf (IsFun mkSelf) ~ Link
   , Replace mkSelf [(String, ResourceLink)] (IsFun mkSelf) ~ ReplaceHandler (ServerT api m) [(String, ResourceLink)]
-  ) => BuildLayerLinks ('Layer api '[]) m where
+  ) => BuildLayerLinks ('Layer apiCs '[] verb) m where
   buildLayerLinks _ _ = (pure @[] . ("self", ) . CompleteLink) ... mkSelf
     where
       mkSelf = safeLink (Proxy @api) (Proxy @api)
 
-type LayerLinkable api c cs m mkLink =
-  ( BuildLayerLinks ('Layer api cs) m
+type LayerLinkable api cs verb m mkLink =
+  ( BuildLayerLinks ('Layer api cs verb) m
   , PolyvariadicComp mkLink (IsFun mkLink)
-  , ReplaceHandler (ServerT api m) [(String, ResourceLink)] ~ [(String, ResourceLink)]
+  , ReplaceHandler (ServerT (MkPrefix api verb) m) [(String, ResourceLink)] ~ [(String, ResourceLink)]
   , Replace mkLink [(String, ResourceLink)] (IsFun mkLink) ~ [(String, ResourceLink)]
   , Return mkLink (IsFun mkLink) ~ Link
   )
 
 instance
-  ( LayerLinkable api c cs m mkLink
-  , api ~ Verb http s cts a
-  , c ~ (next :> Verb http s cts a)
+  ( LayerLinkable apiCs cs verb m mkLink
+  , c ~ MkPrefix (apiCs ++ '[Sym sym]) verb
+  , HasLink c, IsElem c c
   , mkLink ~ MkLink c Link
-  , KnownSymbol next
-  ) => BuildLayerLinks ('Layer (Verb http s cts a) (((next :: Symbol) :> Verb http s cts a) ': cs)) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @next),) . CompleteLink) ... mkLink
+  , KnownSymbol sym
+  ) => BuildLayerLinks ('Layer apiCs (Sym sym ': cs) verb) m where
+  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . CompleteLink) ... mkLink
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
-      ls = buildLayerLinks (Proxy @('Layer api cs)) m
+      ls = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
 
 instance
-  ( LayerLinkable api c cs m mkLink
-  , api ~ (prefix :> Verb http s cts a)
-  , c ~ (prefix :> next :> Verb http s cts a), IsElem c c, HasLink c
-  , mkLink ~ MkLink c Link
-  , KnownSymbol next
-  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> (next :: Symbol) :> Verb http s cts a) ': cs)) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @next),) . CompleteLink) ... mkLink
-    where
-      mkLink = safeLink (Proxy @c) (Proxy @c)
-      ls = buildLayerLinks (Proxy @('Layer api cs)) m
-
-instance
-  ( LayerLinkable api c cs m mkLink
-  , api ~ Verb http s cts a
-  , c ~ (Capture' mods sym x :> Verb http s cts a)
+  ( LayerLinkable apiCs cs verb m mkLink
+  , c ~ MkPrefix (apiCs ++ '[Capture' mods sym x]) verb
   , HasRelationLink c
   , (x -> mkLink) ~ MkLink c Link
   , KnownSymbol sym
-  ) => BuildLayerLinks ('Layer (Verb http s cts a) ((Capture' mods sym x :> Verb http s cts a) ': cs)) m where
+  ) => BuildLayerLinks ('Layer apiCs (Capture' mods sym x ': cs) verb) m where
   buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . TemplateLink) ... toRelationLink (Proxy @c)
     where
-      ls = buildLayerLinks (Proxy @('Layer api cs)) m
+      ls = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
 
 instance
-  ( LayerLinkable api c cs m mkLink
-  , api ~ (prefix :> Verb http s cts a)
-  , c ~ (prefix :> Capture' mods sym x :> Verb http s cts a)
+  ( LayerLinkable apiCs cs verb m mkLink
+  , c ~ MkPrefix (apiCs ++ '[CaptureAll sym x]) verb
   , HasRelationLink c
   , (x -> mkLink) ~ MkLink c Link
   , KnownSymbol sym
-  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> Capture' mods sym x :> Verb http s cts a) ': cs)) m where
+  ) => BuildLayerLinks ('Layer apiCs (CaptureAll sym x ': cs) verb) m where
   buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . TemplateLink) ... toRelationLink (Proxy @c)
     where
-      ls = buildLayerLinks (Proxy @('Layer api cs)) m
-
-instance
-  ( LayerLinkable api c cs m mkLink
-  , api ~ Verb http s cts a
-  , c ~ (CaptureAll sym x :> Verb http s cts a)
-  , HasRelationLink c
-  , (x -> mkLink) ~ MkLink c Link
-  , KnownSymbol sym
-  ) => BuildLayerLinks ('Layer (Verb http s cts a) ((CaptureAll sym x :> Verb http s cts a) ': cs)) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . TemplateLink) ... toRelationLink (Proxy @c)
-    where
-      ls = buildLayerLinks (Proxy @('Layer api cs)) m
-
-instance
-  ( LayerLinkable api c cs m mkLink
-  , api ~ (prefix :> Verb http s cts a)
-  , c ~ (prefix :> CaptureAll sym x :> Verb http s cts a)
-  , HasRelationLink c
-  , (x -> mkLink) ~ MkLink c Link
-  , KnownSymbol sym
-  ) => BuildLayerLinks ('Layer (prefix :> Verb http s cts a) ((prefix :> CaptureAll sym x :> Verb http s cts a) ': cs)) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . TemplateLink) ... toRelationLink (Proxy @c)
-    where
-      ls = buildLayerLinks (Proxy @('Layer api cs)) m
+      ls = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m

@@ -17,7 +17,7 @@ type family Resourcify api ct where
   Resourcify (a :<|> b)      ct = Resourcify a ct :<|> Resourcify b ct
   Resourcify (a :> b)        ct = a :> Resourcify b ct
   Resourcify (Verb m s _ a)  ct = Verb m s '[ct] (MkResource ct a)
-  Resourcify ('Layer api cs) ct = 'Layer (Resourcify api ct) (Resourcify cs ct)
+  Resourcify ('Layer api cs verb) ct = 'Layer (Resourcify api ct) (Resourcify cs ct) (Resourcify verb ct)
   Resourcify (x:xs)          ct = Resourcify x ct : Resourcify xs ct
   Resourcify a               _  = a
 
@@ -54,12 +54,12 @@ instance
       mkSelf = safeLink api api
 
 instance {-# OVERLAPPING #-}
-  ( l ~ 'Layer api cs
+  ( api ~ LayerApi l
   , rApi ~ Resourcify api ct
   , HasLink rApi
   , IsElem rApi rApi
-  , ServerT (Resourcify api ct) m ~ ResourcifyServer (ServerT api m) ct m
-  , rServer ~ ResourcifyServer (ServerT api m) ct m
+  , ServerT (Resourcify l ct) m ~ ResourcifyServer (ServerT l m) ct m
+  , rServer ~ ResourcifyServer (ServerT l m) ct m
   , res ~ MkResource ct
   , buildFun ~ ReplaceHandler rServer [(String, ResourceLink)]
   , Resource res
@@ -67,7 +67,7 @@ instance {-# OVERLAPPING #-}
   , PolyvariadicComp buildFun (IsFun buildFun)
   , Return buildFun (IsFun buildFun) ~ [(String, ResourceLink)]
   , Replace buildFun (m (res Intermediate)) (IsFun buildFun) ~ rServer
-  ) => HasResourceServer ('Layer api cs) m ct where
+  ) => HasResourceServer l m ct where
   getResourceServer m _ _ = (return @m . foldr addRel (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) m
 
 instance {-# OVERLAPPING #-} HasResourceServer ('[] :: [Layer]) m ct where
@@ -77,8 +77,8 @@ instance {-# OVERLAPPING #-}
   ( MonadIO m
   , HasResourceServer ls m ct
   , HasResourceServer l m ct
-  , HasLink (NodeApi l)
-  , IsElem (NodeApi l) (NodeApi l)
+  , HasLink (LayerApi l)
+  , IsElem (LayerApi l) (LayerApi l)
   , BuildLayerLinks (Resourcify l ct) m
   ) => HasResourceServer (l ': ls) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @l) :<|> getResourceServer m ct (Proxy @ls)
