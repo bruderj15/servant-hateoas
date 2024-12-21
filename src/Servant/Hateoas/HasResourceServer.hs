@@ -9,6 +9,7 @@ import Servant.Hateoas.HasHandler
 import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
 import Control.Monad.IO.Class
+import GHC.TypeLits
 
 -- Wrap response type with the content-types resource.
 type Resourcify :: k -> Type -> k
@@ -36,6 +37,15 @@ class HasResourceServer api m ct where
 instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
 
+instance {-# OVERLAPPING #-} HasResourceServer b m ct => HasResourceServer ((sym :: Symbol) :> b) m ct where
+  getResourceServer m ct _ = getResourceServer m ct (Proxy @b)
+
+instance {-# OVERLAPPING #-} HasResourceServer b m ct => HasResourceServer (Description sym :> b) m ct where
+  getResourceServer m ct _ = getResourceServer m ct (Proxy @b)
+
+instance {-# OVERLAPPING #-} HasResourceServer b m ct => HasResourceServer (Summary sym :> b) m ct where
+  getResourceServer m ct _ = getResourceServer m ct (Proxy @b)
+
 instance
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
@@ -48,7 +58,7 @@ instance
   , PolyvariadicComp2 server mkLink (IsFun server)
   , Return2 server mkLink (IsFun server) ~ (m a, Link)
   , Replace2 server mkLink (m (res a)) (IsFun mkLink) ~ ResourcifyServer server ct m
-  ) => HasResourceServer api m ct where
+  ) => HasResourceServer (api :: Type) m ct where
   getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel (CompleteLink self) . toResource (Proxy @res)) <$> ma)) (getHandler m api) mkSelf
     where
       mkSelf = safeLink api api
@@ -56,8 +66,6 @@ instance
 instance {-# OVERLAPPING #-}
   ( api ~ LayerApi l
   , rApi ~ Resourcify api ct
-  , HasLink rApi
-  , IsElem rApi rApi
   , ServerT (Resourcify l ct) m ~ ResourcifyServer (ServerT l m) ct m
   , rServer ~ ResourcifyServer (ServerT l m) ct m
   , res ~ MkResource ct
@@ -77,8 +85,6 @@ instance {-# OVERLAPPING #-}
   ( MonadIO m
   , HasResourceServer ls m ct
   , HasResourceServer l m ct
-  , HasLink (LayerApi l)
-  , IsElem (LayerApi l) (LayerApi l)
   , BuildLayerLinks (Resourcify l ct) m
   ) => HasResourceServer (l ': ls) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @l) :<|> getResourceServer m ct (Proxy @ls)

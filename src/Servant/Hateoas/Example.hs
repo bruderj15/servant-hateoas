@@ -21,20 +21,24 @@ instance Resource res => ToResource res User where
     where
       mkAddrLink = safeLink (Proxy @AddressGetOne) (Proxy @AddressGetOne)
 
-type Api = (AddressApi :<|> UserApi)
+type Api = "api" :> (AddressApi :<|> UserApi)
 
-type UserApi = UserGetOne :<|> UserGetAll
-type UserGetOne = "user" :> Capture "id" Int :> Get '[JSON] User
-type UserGetAll = "user" :> Get '[JSON] [User]
+type UserApi = "user" :> (UserGetOne :<|> UserGetAll :<|> UserGetAllCool)
+type UserGetOne = Capture "id" Int :> Get '[JSON] User
+type UserGetAll = Get '[JSON] [User]
+type UserGetAllCool = "cool-guys" :> Get '[JSON] [User]
 
-type AddressApi = AddressGetOne
-type AddressGetOne = "address" :> Capture "id" Int :> Get '[JSON] Address
+type AddressApi = "address" :> AddressGetOne
+type AddressGetOne = Capture "id" Int :> Get '[JSON] Address
 
 instance HasHandler UserGetOne where
   getHandler _ _ = \uId -> return $ User uId 1 1000
 
 instance HasHandler UserGetAll where
-  getHandler _ _ = return [User 1 1 1000, User 2 1 2000]
+  getHandler _ _ = return [User 1 1 1000, User 2 2 2000, User 42 3 3000]
+
+instance HasHandler UserGetAllCool where
+  getHandler _ _ = return [User 42 3 3000]
 
 instance HasHandler AddressGetOne where
   getHandler _ _ = \aId -> return $ Address aId "Foo St" "BarBaz"
@@ -42,7 +46,8 @@ instance HasHandler AddressGetOne where
 userApiServer :: Server UserApi
 userApiServer = getHandler (Proxy @Handler) (Proxy @UserApi)
 
-apiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @Api)
+apiServer :: ServerT (Resourcify Api (HAL JSON)) Handler
+apiServer = getResourceServer @Api @Handler @(HAL JSON) (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @Api)
 
 layerServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @(MkLayers Api))
 
