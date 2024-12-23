@@ -54,11 +54,20 @@ instance Resource CollectionItem where
 instance Accept (Collection JSON) where
   contentType _ = "application" M.// "vnd.collection+json"
 
-instance ToJSON a => MimeRender (Collection JSON) (CollectionResource a) where
+instance ToJSON (CollectionResource a) => MimeRender (Collection JSON) (CollectionResource a) where
   mimeRender _ = encode
 
 collectionLinks :: [(String, ResourceLink)] -> Value
 collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= l]) <> xs) mempty
+
+-- TODO: I dont like this at all
+-- CollectionResource a represents [a]
+-- So CollectionResource [a] represents [[a]]
+-- This is bad, when rewriting [Foo] in for the ResourceServer we get CollectionResource [Foo] but we want CollectionResource Foo
+-- Best would be to handle this when rewriting but does this result in bloat?
+-- It actually may not because we can match specialized cases in type families Resourcify and ResourcifyServer
+-- How does this affect other parts of the procedure?
+-- Ideally we do not have to adjust any HasResourceServer/BuildLayerLink instances at all
 
 instance ToJSON a => ToJSON (CollectionItem a) where
   toJSON (CollectionItem x ls) = object ["data" .= itemData, "links" .= collectionLinks ls]

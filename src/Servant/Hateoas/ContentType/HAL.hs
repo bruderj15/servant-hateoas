@@ -40,7 +40,7 @@ instance Resource HALResource where
 instance Accept (HAL JSON) where
   contentType _ = "application" M.// "hal+json"
 
-instance ToJSON a => MimeRender (HAL JSON) (HALResource a) where
+instance ToJSON (HALResource a) => MimeRender (HAL JSON) (HALResource a) where
   mimeRender _ = encode
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
