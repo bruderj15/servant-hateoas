@@ -4,7 +4,7 @@ module Servant.Hateoas.Layer.Build where
 
 import Servant
 import Servant.Hateoas.Resource
-import Servant.Hateoas.HasRelationLink
+import Servant.Hateoas.RelationLink
 import Servant.Hateoas.Layer.Type
 import Servant.Hateoas.Internal.Sym
 import Servant.Hateoas.Internal.Polyvariadic

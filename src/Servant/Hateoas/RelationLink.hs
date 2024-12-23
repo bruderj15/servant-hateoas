@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Servant.Hateoas.HasRelationLink where
+module Servant.Hateoas.RelationLink where
 
 import Servant
 import GHC.TypeLits

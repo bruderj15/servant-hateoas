@@ -5,7 +5,7 @@
 module Servant.Hateoas.Resource where
 
 import Servant
-import Servant.Hateoas.HasRelationLink
+import Servant.Hateoas.RelationLink
 import Data.Kind
 import Data.Aeson
 

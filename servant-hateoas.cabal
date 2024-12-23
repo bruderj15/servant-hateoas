@@ -31,8 +31,8 @@ library
     exposed-modules:     Servant.Hateoas
                        , Servant.Hateoas.Resource
                        , Servant.Hateoas.HasHandler
-                       , Servant.Hateoas.HasRelationLink
-                       , Servant.Hateoas.HasResourceServer
+                       , Servant.Hateoas.RelationLink
+                       , Servant.Hateoas.ResourceServer
                        , Servant.Hateoas.Layer
                        , Servant.Hateoas.Layer.Type
                        , Servant.Hateoas.Layer.Build

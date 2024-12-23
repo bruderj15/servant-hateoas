@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Servant.Hateoas.HasResourceServer where
+module Servant.Hateoas.ResourceServer where
 
 import Servant
 import Servant.Hateoas.Layer
