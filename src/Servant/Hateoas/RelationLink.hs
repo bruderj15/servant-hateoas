@@ -12,6 +12,7 @@ import Data.Text (Text, intercalate)
 import Data.Text.Encoding
 import Data.Singletons.Bool
 
+-- | Link data-type for hypermedia-links in HATEOAS with potentially templated URIs.
 data RelationLink = RelationLink
   { _path        :: Text
   , _params      :: [RelationParam]
@@ -19,14 +20,17 @@ data RelationLink = RelationLink
   , _method      :: Text
   } deriving (Show, Eq)
 
+-- | Parameter data-type for hypermedia-links in HATEOAS.
 data RelationParam = RelationParam
   { _name        :: Text
   , _required    :: Bool
   } deriving (Show, Eq)
 
+-- | Create a placeholder for a URI template parameter.
 mkPlaceHolder :: Text -> Text
 mkPlaceHolder s = "{" <> s <> "}"
 
+-- | Append a path to a URI.
 appendPath :: Text -> Text -> Text
 appendPath l "" = l
 appendPath l r = l <> "/" <> r
@@ -37,6 +41,7 @@ instance ToJSON RelationLink where
     then path <> "{?" <> intercalate "," (_name <$> params) <> "}"
     else path
 
+-- | Class for creating a 'RelationLink' to an API.
 class HasRelationLink endpoint where
   toRelationLink :: Proxy endpoint -> RelationLink
 
