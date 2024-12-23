@@ -4,6 +4,7 @@ import Servant
 import Control.Monad.IO.Class
 import GHC.TypeLits
 
+-- | Typeclass for extracting the handler of an API.
 class HasHandler api where
   getHandler :: MonadIO m => Proxy m -> Proxy api -> ServerT api m
 
