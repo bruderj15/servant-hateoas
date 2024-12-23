@@ -19,17 +19,17 @@ import Data.Aeson.KeyMap (singleton)
 import GHC.Exts
 import GHC.Generics
 
--- | Data-Kind representing Content-Types of Hypertext Application Language (HAL).
+-- | Type representing Content-Types of Hypertext Application Language (HAL).
 --
 --   Type parameter @t@ is the mime type suffix in @application/hal+t@.
 data HAL (t :: Type)
 
 type instance MkResource (HAL t) = HALResource
 
--- | Resource wrapper for HAL.
+-- | HAL-resource representation.
 data HALResource a = HALResource
   { resource :: a                                       -- ^ Wrapped resource
-  , rels     :: [(String, ResourceLink)]                        -- ^ Pairs @(rel, link)@ for relations
+  , rels     :: [(String, ResourceLink)]                -- ^ Pairs @(rel, link)@ for hypermedia relations
   , embedded :: [(String, SomeF HALResource ToJSON)]    -- ^ Pairs @(rel, resource)@ for embedded resources
   } deriving (Generic, Functor)
 
