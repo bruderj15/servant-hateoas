@@ -10,7 +10,7 @@ import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
 import Control.Monad.IO.Class
 
--- Wrap response type with the content-types resource.
+-- | Turns an API into a resourceful API by replacing the response type of each endpoint with a resource type.
 type Resourcify :: k -> Type -> k
 type family Resourcify api ct where
   Resourcify EmptyAPI        ct = EmptyAPI
@@ -21,22 +21,30 @@ type family Resourcify api ct where
   Resourcify (x:xs)          ct = Resourcify x ct : Resourcify xs ct
   Resourcify a               _  = a
 
--- Given a @ServerT api m@ and some @ct@ we want a @ServerT (Resourcify api ct) m@.
+-- | Turns a 'ServerT' into a resourceful 'ServerT' by replacing the result type @m a@ of the function @server@ with @m (res a)@ where
+-- @res := 'MkResource' ct@.
+--
+-- Together with 'Resourcify' the following 'Constraint' holds:
+--
+-- @
+-- forall api ct m. ServerT (Resourcify api) ct m ~ ResourcifyServer (ServerT api m) ct m
+-- @
 type ResourcifyServer :: k -> Type -> (Type -> Type) -> Type
 type family ResourcifyServer server ct m where
   ResourcifyServer EmptyServer ct m = EmptyServer
   ResourcifyServer (a :<|> b)  ct m = ResourcifyServer a ct m :<|> ResourcifyServer b ct m
   ResourcifyServer (a -> b)    ct m = a -> ResourcifyServer b ct m
   ResourcifyServer (m a)       ct m = m (MkResource ct a)
-  ResourcifyServer (f a)       ct m = f (ResourcifyServer a ct m) -- needed for containers like [Foo]
+  ResourcifyServer (f a)       ct m = f (ResourcifyServer a ct m) -- needed for stepping into containers like [Foo]
 
+-- | A typeclass providing a function to turn an API into a resourceful API.
 class HasResourceServer api m ct where
   getResourceServer :: MonadIO m => Proxy m -> Proxy ct -> Proxy api -> ServerT (Resourcify api ct) m
 
 instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
 
-instance
+instance {-# OVERLAPPABLE #-}
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
   , mkLink ~ MkLink api Link
@@ -53,7 +61,7 @@ instance
     where
       mkSelf = safeLink api api
 
-instance {-# OVERLAPPING #-}
+instance
   ( api ~ LayerApi l
   , rApi ~ Resourcify api ct
   , ServerT (Resourcify l ct) m ~ ResourcifyServer (ServerT l m) ct m
@@ -68,10 +76,10 @@ instance {-# OVERLAPPING #-}
   ) => HasResourceServer l m ct where
   getResourceServer m _ _ = (return @m . foldr addRel (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) m
 
-instance {-# OVERLAPPING #-} HasResourceServer ('[] :: [Layer]) m ct where
+instance HasResourceServer ('[] :: [Layer]) m ct where
   getResourceServer _ _ _ = emptyServer
 
-instance {-# OVERLAPPING #-}
+instance
   ( MonadIO m
   , HasResourceServer ls m ct
   , HasResourceServer l m ct
