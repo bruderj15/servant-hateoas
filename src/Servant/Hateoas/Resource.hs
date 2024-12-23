@@ -12,7 +12,12 @@ import Data.Aeson
 -- | Type family computing the Resource-Type belonging to this Content-Type.
 type family MkResource ct :: (Type -> Type)
 
-data ResourceLink = CompleteLink Link | TemplateLink RelationLink deriving (Show)
+-- | Type for Hypermedia-Links.
+--
+data ResourceLink =
+    CompleteLink Link               -- ^ A complete 'Link' with all information.
+  | TemplateLink RelationLink       -- ^ A 'RelationLink' that can be used as a template for URIs.
+  deriving (Show)
 
 instance ToJSON ResourceLink where
   toJSON (CompleteLink l) = let uri = linkURI l in toJSON $ uri { uriPath = "/" <> uriPath uri }
@@ -20,11 +25,13 @@ instance ToJSON ResourceLink where
 
 -- | Class for resources that carry Hypermedia-Relations.
 class Resource res where
+  -- | Wrap a value into a 'Resource'.
   wrap :: a -> res a
 
-  -- | Add a relation @(rel, link)@ to a resource.
+  -- | Add a relation @(rel, link)@ to a 'Resource'.
   addRel :: (String, ResourceLink) -> res a -> res a
 
+-- | Add a 'self'-relation to a 'Resource'.
 addSelfRel :: Resource res => ResourceLink -> res a -> res a
 addSelfRel l = addRel ("self", l)
 
@@ -39,7 +46,11 @@ class Resource res => CollectingResource res where
   collect :: a -> res a -> res a
 
 -- | Class for converting values of @a@ to their respective Resource-Representation.
+--
+-- The default implementation wraps the value into a 'Resource' without adding any further information.
+-- Therefore you can derive an instance for this class.
 class ToResource res a where
+  -- | Describes how a value @a@ can be converted to a 'Resource'.
   toResource :: Proxy res -> a -> res a
   default toResource :: Resource res => Proxy res -> a -> res a
   toResource _ = wrap

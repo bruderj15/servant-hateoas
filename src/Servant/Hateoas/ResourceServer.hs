@@ -44,6 +44,7 @@ class HasResourceServer api m ct where
 instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
 
+-- | Adds a self-link to the resource.
 instance {-# OVERLAPPABLE #-}
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
