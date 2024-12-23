@@ -9,7 +9,6 @@ import Servant.Hateoas.HasHandler
 import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
 import Control.Monad.IO.Class
-import GHC.TypeLits
 
 -- Wrap response type with the content-types resource.
 type Resourcify :: k -> Type -> k
@@ -36,15 +35,6 @@ class HasResourceServer api m ct where
 
 instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
-
-instance {-# OVERLAPPING #-} HasResourceServer b m ct => HasResourceServer ((sym :: Symbol) :> b) m ct where
-  getResourceServer m ct _ = getResourceServer m ct (Proxy @b)
-
-instance {-# OVERLAPPING #-} HasResourceServer b m ct => HasResourceServer (Description sym :> b) m ct where
-  getResourceServer m ct _ = getResourceServer m ct (Proxy @b)
-
-instance {-# OVERLAPPING #-} HasResourceServer b m ct => HasResourceServer (Summary sym :> b) m ct where
-  getResourceServer m ct _ = getResourceServer m ct (Proxy @b)
 
 instance
   ( server ~ ServerT api m
