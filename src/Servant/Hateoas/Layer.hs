@@ -1,7 +1,23 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Servant.Hateoas.Layer
-(MkLayers, GoLayers, Normalize, module Servant.Hateoas.Layer.Type, module Servant.Hateoas.Layer.Merge, module Servant.Hateoas.Layer.Build)
+(
+  -- * Create
+  MkLayers,
+
+  -- * Type
+  module Servant.Hateoas.Layer.Type,
+
+  -- * Build
+  module Servant.Hateoas.Layer.Build,
+
+  -- * Merge
+  module Servant.Hateoas.Layer.Merge,
+
+  -- * Utilities
+  GoLayers,
+  Normalize,
+)
 where
 
 import Servant

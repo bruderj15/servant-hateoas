@@ -1,8 +1,26 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Servant.Hateoas.Resource where
+module Servant.Hateoas.Resource
+(
+  -- * ResourceLink
+  ResourceLink(..),
+
+  -- * Resource
+  -- ** MkResource
+  MkResource,
+
+  -- ** Base Class
+  Resource(..),
+  addSelfRel,
+
+  -- ** Specialized classes
+  EmbeddingResource(..),
+  CollectingResource(..),
+
+  -- * Creation
+  ToResource(..)
+) where
 
 import Servant
 import Servant.Hateoas.RelationLink
@@ -28,10 +46,10 @@ class Resource res where
   -- | Wrap a value into a 'Resource'.
   wrap :: a -> res a
 
-  -- | Add a relation @(rel, link)@ to a 'Resource'.
+  -- | Add a hypermedia relation @(rel, link)@ to a 'Resource'.
   addRel :: (String, ResourceLink) -> res a -> res a
 
--- | Add a 'self'-relation to a 'Resource'.
+-- | Add the self-relation to a 'Resource'.
 addSelfRel :: Resource res => ResourceLink -> res a -> res a
 addSelfRel l = addRel ("self", l)
 

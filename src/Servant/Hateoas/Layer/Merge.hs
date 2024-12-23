@@ -1,11 +1,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Servant.Hateoas.Layer.Merge where
+module Servant.Hateoas.Layer.Merge
+(
+  -- * Merge
+  MergeLayers,
+
+  -- ** Utilities
+  ContainsLayerApi,
+  WithAllChildrenOfLayerApi
+)
+where
 
 import Servant.Hateoas.Layer.Type
 import Data.Type.Bool
 
--- | Given two lists of 'Layer's, merges them into one list by comnbining all 'RelativeChildren' of 'Layer's with the exact same API.
+-- | Given two lists of 'Layer's, merges them into one list by combining all 'RelativeChildren' of 'Layer's with the exact same API.
 type MergeLayers :: [Layer] -> [Layer] -> [Layer]
 type family MergeLayers ls acc where
   MergeLayers '[] acc = acc

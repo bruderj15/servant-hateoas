@@ -1,6 +1,15 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Servant.Hateoas.ResourceServer where
+module Servant.Hateoas.ResourceServer
+(
+  -- * Type-Class
+  HasResourceServer(..),
+
+  -- * Type-Families
+  Resourcify,
+  ResourcifyServer
+)
+where
 
 import Servant
 import Servant.Hateoas.Layer

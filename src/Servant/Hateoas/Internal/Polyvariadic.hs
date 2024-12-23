@@ -1,10 +1,22 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Servant.Hateoas.Internal.Polyvariadic where
+module Servant.Hateoas.Internal.Polyvariadic
+(
+  -- * IsFunction
+  IsFun,
+
+  -- * Simple Polyvariadic composition
+  PolyvariadicComp(..),
+  (...),
+
+  -- * Polyvariadic composition with two functions
+  PolyvariadicComp2(..),
+)
+where
 
 import Data.Kind
 
--- | Type-level function to determine if a type is a function.
+-- | Type-level function to determine if a 'Type' is a function.
 type family IsFun f where
   IsFun (_ -> _) = 'True
   IsFun _        = 'False

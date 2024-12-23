@@ -1,6 +1,17 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Servant.Hateoas.Layer.Build where
+module Servant.Hateoas.Layer.Build
+(
+  -- * Type family
+  ReplaceHandler,
+
+  -- * Class
+  BuildLayerLinks(..),
+
+  -- * Utility Constraint
+  LayerLinkable
+)
+where
 
 import Servant
 import Servant.Hateoas.Resource

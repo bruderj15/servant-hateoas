@@ -1,4 +1,9 @@
-module Servant.Hateoas.HasHandler where
+module Servant.Hateoas.HasHandler
+(
+  -- * Class
+  HasHandler(..)
+)
+where
 
 import Servant
 import Control.Monad.IO.Class

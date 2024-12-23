@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE DefaultSignatures #-}
 
 module Servant.Hateoas.ContentType.HAL
-( HAL
+(
+  -- * Content-Type
+  HAL
+
+  -- * Resource-Type
 , HALResource(..)
 )
 where

@@ -1,4 +1,12 @@
-module Servant.Hateoas.Internal.Sym where
+module Servant.Hateoas.Internal.Sym
+(
+  -- * Type
+  Sym,
+
+  -- * Type family
+  Symify
+)
+where
 
 import Servant
 import Servant.Hateoas.HasHandler

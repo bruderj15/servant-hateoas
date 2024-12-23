@@ -1,7 +1,21 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Servant.Hateoas.Layer.Type where
+module Servant.Hateoas.Layer.Type
+(
+  -- * Type
+  Layer(..),
+
+  -- ** Getter
+  LayerApiCs, RelativeChildren, LayerVerb,
+
+  -- * API-construction
+  LayerApi, MkPrefix, type (++),
+
+  -- * Intermediate
+  Intermediate(..), GetIntermediate
+)
+where
 
 import Servant
 import Servant.Server.Internal.Router
@@ -21,11 +35,19 @@ type (++) xs ys = AppendList xs ys
 -- ''Layer' '['Sym' \"api\", 'Sym' \"user\"] '['Capture' \"id\" 'Int', 'Sym' \"vip\"] 'GetIntermediate'
 -- @
 --
--- Represents the API @\"api\" :> \"user\" :> 'GetIntermediate'@ with children
+-- Represents the API
 --
--- @\"api\" :> \"user\" :> 'Capture' \"id\" 'Int' :> 'GetIntermediate'@ and
+-- @
+-- \"api\" :> \"user\" :> 'GetIntermediate'
+-- @ with children
 --
--- @\"api\" :> \"user\" :> \"vip\" :> 'GetIntermediate'@.
+-- @
+-- \"api\" :> \"user\" :> 'Capture' \"id\" 'Int' :> 'GetIntermediate'
+-- @ and
+--
+-- @
+-- \"api\" :> \"user\" :> \"vip\" :> 'GetIntermediate'
+-- @
 data Layer = Layer
   { api              :: [Type]      -- ^ The API of this layer represented as list. Folding it with ':>' results in the actual API, see 'MkPrefix'.
   , relativeChildren :: [Type]      -- ^ All immediate children of this layer.
@@ -53,7 +75,11 @@ type family LayerApi (a :: Layer) where
 -- ==== __Example__
 --
 -- @
--- 'MkPrefix' '['Sym' \"api\", 'Sym' \"user\"] 'GetIntermediate' ~ 'Sym' \"api\" :> 'Sym' \"user\" :> 'GetIntermediate'
+-- 'MkPrefix' '['Sym' \"api\", 'Sym' \"user\"] 'GetIntermediate'
+-- @ resolves to
+--
+-- @
+-- 'Sym' \"api\" :> 'Sym' \"user\" :> 'GetIntermediate'
 -- @
 type MkPrefix :: [Type] -> Type -> Type
 type family MkPrefix prefix api where
