@@ -3,8 +3,6 @@ module Servant.Hateoas.Internal.Sym where
 import Servant
 import GHC.TypeLits
 
--- TODO: HasLink
-
 data Sym (sym :: Symbol)
 
 instance (HasServer api context, KnownSymbol sym) => HasServer (Sym sym :> api) context where
