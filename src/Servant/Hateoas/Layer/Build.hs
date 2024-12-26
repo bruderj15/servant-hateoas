@@ -7,9 +7,6 @@ module Servant.Hateoas.Layer.Build
 
   -- * Class
   BuildLayerLinks(..),
-
-  -- * Utility Constraint
-  LayerLinkable
 )
 where
 
@@ -46,45 +43,63 @@ instance
     where
       mkSelf = safeLink (Proxy @api) (Proxy @api)
 
--- | Convenience alias 'Constraint' for 'Layer's that can be linked.
-type LayerLinkable api cs verb m mkLink =
-  ( BuildLayerLinks ('Layer api cs verb) m
-  , PolyvariadicComp mkLink (IsFun mkLink)
-  , ReplaceHandler (ServerT (MkPrefix api verb) m) [(String, ResourceLink)] ~ [(String, ResourceLink)]
-  , Replace mkLink [(String, ResourceLink)] (IsFun mkLink) ~ [(String, ResourceLink)]
-  , Return mkLink (IsFun mkLink) ~ Link
-  )
-
 instance
-  ( LayerLinkable apiCs cs verb m mkLink
-  , c ~ MkPrefix (apiCs ++ '[Sym sym]) verb
+  ( c ~ MkPrefix (apiCs ++ '[Sym sym]) verb
   , HasLink c, IsElem c c
   , mkLink ~ MkLink c Link
   , KnownSymbol sym
+  , BuildLayerLinks ('Layer apiCs cs verb) m
+  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
+  , PolyvariadicComp2 mkLink buildLinksFun (IsFun mkLink)
+  , Return2 mkLink buildLinksFun (IsFun mkLink) ~ (Link, [(String, ResourceLink)])
+  , Replace2 mkLink buildLinksFun [(String, ResourceLink)] (IsFun mkLink) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (Sym sym ': cs) verb) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . CompleteLink) ... mkLink
+  buildLayerLinks _ m = pcomp2 (\(l, ls) -> (symbolVal (Proxy @sym), CompleteLink l) : ls) mkLink mkLinks
     where
       mkLink = safeLink (Proxy @c) (Proxy @c)
-      ls = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
 
 instance
-  ( LayerLinkable apiCs cs verb m mkLink
-  , c ~ MkPrefix (apiCs ++ '[Capture' mods sym x]) verb
+  ( c ~ MkPrefix (apiCs ++ '[Capture' mods sym x]) verb
   , HasRelationLink c
-  , (x -> mkLink) ~ MkLink c Link
   , KnownSymbol sym
+  , BuildLayerLinks ('Layer apiCs cs verb) m
+  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
+  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (Capture' mods sym x ': cs) verb) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . TemplateLink) ... toRelationLink (Proxy @c)
+  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
     where
-      ls = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      l = toRelationLink (Proxy @c)
 
 instance
-  ( LayerLinkable apiCs cs verb m mkLink
-  , c ~ MkPrefix (apiCs ++ '[CaptureAll sym x]) verb
+  ( c ~ MkPrefix (apiCs ++ '[CaptureAll sym x]) verb
   , HasRelationLink c
-  , (x -> mkLink) ~ MkLink c Link
   , KnownSymbol sym
+  , BuildLayerLinks ('Layer apiCs cs verb) m
+  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
+  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (CaptureAll sym x ': cs) verb) m where
-  buildLayerLinks _ m = ((: ls) . (symbolVal (Proxy @sym),) . TemplateLink) ... toRelationLink (Proxy @c)
+  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
     where
-      ls = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      l = toRelationLink (Proxy @c)
+
+instance
+  ( c ~ MkPrefix (apiCs ++ '[QueryParam' mods sym x]) verb
+  , HasRelationLink c
+  , KnownSymbol sym
+  , BuildLayerLinks ('Layer apiCs cs verb) m
+  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
+  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  ) => BuildLayerLinks ('Layer apiCs (QueryParam' mods sym x ': cs) verb) m where
+  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+    where
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      l = toRelationLink (Proxy @c)
