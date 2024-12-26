@@ -69,10 +69,11 @@ instance
   , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (Capture' mods sym x ': cs) verb) m where
-  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
     where
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      l = toRelationLink (Proxy @c)
+      relName = symbolVal (Proxy @sym)
+      l = TemplateLink $ toRelationLink (Proxy @c)
 
 instance
   ( c ~ MkPrefix (apiCs ++ '[CaptureAll sym x]) verb
@@ -84,10 +85,11 @@ instance
   , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (CaptureAll sym x ': cs) verb) m where
-  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
     where
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      l = toRelationLink (Proxy @c)
+      relName = symbolVal (Proxy @sym)
+      l = TemplateLink $ toRelationLink (Proxy @c)
 
 instance
   ( c ~ MkPrefix (apiCs ++ '[QueryParam' mods sym x]) verb
@@ -99,10 +101,11 @@ instance
   , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (QueryParam' mods sym x ': cs) verb) m where
-  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
     where
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      l = toRelationLink (Proxy @c)
+      relName = symbolVal (Proxy @sym)
+      l = TemplateLink $ toRelationLink (Proxy @c)
 
 instance
   ( c ~ MkPrefix (apiCs ++ '[QueryParams sym x]) verb
@@ -114,10 +117,11 @@ instance
   , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (QueryParams sym x ': cs) verb) m where
-  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
     where
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      l = toRelationLink (Proxy @c)
+      relName = symbolVal (Proxy @sym)
+      l = TemplateLink $ toRelationLink (Proxy @c)
 
 instance
   ( c ~ MkPrefix (apiCs ++ '[DeepQuery sym x]) verb
@@ -129,10 +133,11 @@ instance
   , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (DeepQuery sym x ': cs) verb) m where
-  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
     where
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      l = toRelationLink (Proxy @c)
+      relName = symbolVal (Proxy @sym)
+      l = TemplateLink $ toRelationLink (Proxy @c)
 
 instance
   ( c ~ MkPrefix (apiCs ++ '[QueryFlag sym]) verb
@@ -144,7 +149,8 @@ instance
   , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (QueryFlag sym ': cs) verb) m where
-  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
     where
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      l = toRelationLink (Proxy @c)
+      relName = symbolVal (Proxy @sym)
+      l = TemplateLink $ toRelationLink (Proxy @c)
