@@ -96,6 +96,14 @@ instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryParams sy
         , _required = False
         }
 
+instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryFlag sym :> b) where
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
+    where
+      param = RelationParam
+        { _name = fromString $ symbolVal (Proxy @sym)
+        , _required = False
+        }
+
 instance HasRelationLink b => HasRelationLink (QueryString :> b) where
   toRelationLink _ = toRelationLink (Proxy @b)
 
