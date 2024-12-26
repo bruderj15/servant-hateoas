@@ -10,7 +10,10 @@ module Servant.Hateoas.RelationLink
   appendPath,
 
   -- * Class
-  HasRelationLink(..)
+  HasRelationLink(..),
+
+  -- * Type-family
+  IsRequired
 )
 where
 
@@ -80,6 +83,7 @@ instance HasRelationLink b => HasRelationLink (Header' mods sym a :> b) where
 instance HasRelationLink b => HasRelationLink (HttpVersion :> b) where
   toRelationLink _ = toRelationLink (Proxy @b)
 
+-- | From a list of modifiers of a combinator compute, if the combinator is required.
 type family IsRequired (mods :: [Type]) :: Bool where
   IsRequired (Required ': mods) = 'True
   IsRequired (Optional ': mods) = 'False

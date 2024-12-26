@@ -65,5 +65,6 @@ type family GoLayers api stand where
   GoLayers (Sym a               :> b) prefix = '[ 'Layer prefix '[Sym a]               GetIntermediate ] ++ GoLayers b (prefix ++ '[Sym a])
   GoLayers (Capture' mods sym a :> b) prefix = '[ 'Layer prefix '[Capture' mods sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[Capture' mods sym a])
   GoLayers (CaptureAll sym a    :> b) prefix = '[ 'Layer prefix '[CaptureAll    sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[CaptureAll    sym a])
+  GoLayers (QueryParam' mods sym a :> b) prefix = '[ 'Layer prefix '[QueryParam' mods sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[QueryParam' mods sym a])
   GoLayers (a :> b)                   prefix = GoLayers b (prefix ++ '[a])
   GoLayers _ _ = '[]
