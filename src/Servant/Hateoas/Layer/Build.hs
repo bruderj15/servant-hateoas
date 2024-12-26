@@ -52,7 +52,7 @@ instance
   , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
   , PolyvariadicComp2 mkLink buildLinksFun (IsFun mkLink)
   , Return2 mkLink buildLinksFun (IsFun mkLink) ~ (Link, [(String, ResourceLink)])
-  , Replace2 mkLink buildLinksFun [(String, ResourceLink)] (IsFun mkLink) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Replace2 mkLink buildLinksFun [(String, ResourceLink)] (IsFun mkLink) ~ buildLinksFun
   ) => BuildLayerLinks ('Layer apiCs (Sym sym ': cs) verb) m where
   buildLayerLinks _ m = pcomp2 (\(l, ls) -> (symbolVal (Proxy @sym), CompleteLink l) : ls) mkLink mkLinks
     where
@@ -66,7 +66,7 @@ instance
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
   , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (Capture' mods sym x ': cs) verb) m where
   buildLayerLinks _ m = ((relName, l) :) ... mkLinks
@@ -82,7 +82,7 @@ instance
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
   , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (CaptureAll sym x ': cs) verb) m where
   buildLayerLinks _ m = ((relName, l) :) ... mkLinks
@@ -98,7 +98,7 @@ instance
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
   , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (QueryParam' mods sym x ': cs) verb) m where
   buildLayerLinks _ m = ((relName, l) :) ... mkLinks
@@ -114,7 +114,7 @@ instance
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
   , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (QueryParams sym x ': cs) verb) m where
   buildLayerLinks _ m = ((relName, l) :) ... mkLinks
@@ -130,7 +130,7 @@ instance
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
   , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (DeepQuery sym x ': cs) verb) m where
   buildLayerLinks _ m = ((relName, l) :) ... mkLinks
@@ -146,7 +146,7 @@ instance
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
   , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
   ) => BuildLayerLinks ('Layer apiCs (QueryFlag sym ': cs) verb) m where
   buildLayerLinks _ m = ((relName, l) :) ... mkLinks
