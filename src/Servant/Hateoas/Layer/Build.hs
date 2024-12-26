@@ -120,6 +120,21 @@ instance
       l = toRelationLink (Proxy @c)
 
 instance
+  ( c ~ MkPrefix (apiCs ++ '[DeepQuery sym x]) verb
+  , HasRelationLink c
+  , KnownSymbol sym
+  , BuildLayerLinks ('Layer apiCs cs verb) m
+  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
+  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
+  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)]
+  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  ) => BuildLayerLinks ('Layer apiCs (DeepQuery sym x ': cs) verb) m where
+  buildLayerLinks _ m = (\ls -> (symbolVal (Proxy @sym), TemplateLink l) : ls) ... mkLinks
+    where
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      l = toRelationLink (Proxy @c)
+
+instance
   ( c ~ MkPrefix (apiCs ++ '[QueryFlag sym]) verb
   , HasRelationLink c
   , KnownSymbol sym
