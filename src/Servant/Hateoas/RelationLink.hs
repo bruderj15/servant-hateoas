@@ -29,6 +29,8 @@ data RelationLink = RelationLink
   , _params      :: [RelationParam]
   , _templated   :: Bool
   , _method      :: Text
+  , _summary     :: Maybe Text
+  , _description :: Maybe Text
   } deriving (Show, Eq)
 
 -- | Parameter data-type for hypermedia-links in HATEOAS.
@@ -47,7 +49,7 @@ appendPath l "" = l
 appendPath l r = l <> "/" <> r
 
 instance ToJSON RelationLink where
-  toJSON (RelationLink path params templated _) = String $
+  toJSON (RelationLink path params templated _ _ _) = String $
     if templated
     then path <> "{?" <> intercalate "," (_name <$> params) <> "}"
     else path
@@ -142,6 +144,8 @@ instance ReflectMethod m => HasRelationLink (Verb m s cts a) where
     , _params = []
     , _templated = False
     , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _summary = Nothing
+    , _description = Nothing
     }
 
 instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
@@ -150,6 +154,8 @@ instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
     , _params = []
     , _templated = False
     , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _summary = Nothing
+    , _description = Nothing
     }
 
 instance ReflectMethod m => HasRelationLink (UVerb m cts as) where
@@ -158,6 +164,8 @@ instance ReflectMethod m => HasRelationLink (UVerb m cts as) where
     , _params = []
     , _templated = False
     , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _summary = Nothing
+    , _description = Nothing
     }
 
 instance ReflectMethod m => HasRelationLink (Stream m s f ct a) where
@@ -166,13 +174,19 @@ instance ReflectMethod m => HasRelationLink (Stream m s f ct a) where
     , _params = []
     , _templated = False
     , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _summary = Nothing
+    , _description = Nothing
     }
 
 instance HasRelationLink b => HasRelationLink (BasicAuth realm userData :> b) where
   toRelationLink _ = toRelationLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (Description sym :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Description sym :> b) where
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _description = Just descr }
+    where
+      descr = fromString $ symbolVal (Proxy @sym)
 
-instance HasRelationLink b => HasRelationLink (Summary sym :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Summary sym :> b) where
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _summary = Just summary }
+    where
+      summary = fromString $ symbolVal (Proxy @sym)
