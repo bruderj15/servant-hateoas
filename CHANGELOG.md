@@ -6,6 +6,11 @@ file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PVP versioning](https://pvp.haskell.org/).
 
+## v0.3.2 _(2024-12-27)_
+
+### Changed
+- Rendering prop `templated: true` hypermedia relations for HAL+JSON-Responses when the relations `href` is templated
+
 ## v0.3.1 _(2024-12-27)_
 
 ### Added

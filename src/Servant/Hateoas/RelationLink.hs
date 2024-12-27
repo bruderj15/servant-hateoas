@@ -15,20 +15,25 @@ module Servant.Hateoas.RelationLink
 where
 
 import Servant
+import Servant.API.ContentTypes (AllMime(..))
 import Servant.API.Modifiers (FoldRequired)
-import GHC.TypeLits
+import Network.HTTP.Media (MediaType)
+import Network.HTTP.Types (parseMethod)
 import Data.String (fromString)
 import Data.Aeson
 import Data.Text (Text, intercalate)
-import Data.Text.Encoding
 import Data.Singletons.Bool
+import GHC.TypeLits
 
 -- | Link data-type for hypermedia-links in HATEOAS with potentially templated URIs.
 data RelationLink = RelationLink
-  { _path        :: Text
-  , _params      :: [RelationParam]
-  , _templated   :: Bool
-  , _method      :: Text
+  { _path         :: Text
+  , _params       :: [RelationParam]
+  , _templated    :: Bool
+  , _method       :: StdMethod
+  , _contentTypes :: [MediaType]
+  , _summary      :: Maybe Text
+  , _description  :: Maybe Text
   } deriving (Show, Eq)
 
 -- | Parameter data-type for hypermedia-links in HATEOAS.
@@ -47,8 +52,8 @@ appendPath l "" = l
 appendPath l r = l <> "/" <> r
 
 instance ToJSON RelationLink where
-  toJSON (RelationLink path params templated _) = String $
-    if templated
+  toJSON (RelationLink path params templated _ _ _ _) = String $
+    if not (null params) && templated
     then path <> "{?" <> intercalate "," (_name <$> params) <> "}"
     else path
 
@@ -65,12 +70,12 @@ instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink ((sym :: Symbol
       prefix = fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Capture' mods sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (CaptureAll sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
@@ -136,43 +141,59 @@ instance HasRelationLink b => HasRelationLink (WithNamedContext name subs sub :>
 instance HasRelationLink b => HasRelationLink (WithResource res :> b) where
   toRelationLink _ = toRelationLink (Proxy @b)
 
-instance ReflectMethod m => HasRelationLink (Verb m s cts a) where
+instance (ReflectMethod m, AllMime cts) => HasRelationLink (Verb m s cts a) where
   toRelationLink _ = RelationLink
-    { _path = ""
+    { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _summary = Nothing
+    , _description = Nothing
+    , _contentTypes = allMime (Proxy @cts)
     }
 
 instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
   toRelationLink _ = RelationLink
-    { _path = ""
+    { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _summary = Nothing
+    , _description = Nothing
+    , _contentTypes = mempty
     }
 
-instance ReflectMethod m => HasRelationLink (UVerb m cts as) where
+instance (ReflectMethod m, AllMime cts) => HasRelationLink (UVerb m cts as) where
   toRelationLink _ = RelationLink
-    { _path = ""
+    { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _summary = Nothing
+    , _description = Nothing
+    , _contentTypes = allMime (Proxy @cts)
     }
 
-instance ReflectMethod m => HasRelationLink (Stream m s f ct a) where
+instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) where
   toRelationLink _ = RelationLink
-    { _path = ""
+    { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _summary = Nothing
+    , _description = Nothing
+    , _contentTypes = pure $ contentType (Proxy @ct)
     }
 
 instance HasRelationLink b => HasRelationLink (BasicAuth realm userData :> b) where
   toRelationLink _ = toRelationLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (Description sym :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Description sym :> b) where
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _description = Just descr }
+    where
+      descr = fromString $ symbolVal (Proxy @sym)
 
-instance HasRelationLink b => HasRelationLink (Summary sym :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Summary sym :> b) where
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _summary = Just summary }
+    where
+      summary = fromString $ symbolVal (Proxy @sym)

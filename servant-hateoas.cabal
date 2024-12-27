@@ -1,6 +1,6 @@
 cabal-version:           3.0
 name:                    servant-hateoas
-version:                 0.3.1
+version:                 0.3.2
 synopsis:                HATEOAS extension for servant
 description:             Create Resource-Representations for your types and make your API HATEOAS-compliant.
   Automatically derive a HATEOAS-API and server-implementation from your API or straight up define a HATEOAS-API yourself.
@@ -50,6 +50,7 @@ library
     build-depends:       base                          >= 4.17.2   && < 5
                        , aeson                         >= 2.2.3    && < 2.3
                        , text                          >= 1.2.3.0  && < 2.2
+                       , http-types                    >= 0.12.2   && < 0.13
                        , http-media                    >= 0.8.1    && < 0.9
                        , servant                       >= 0.20.2   && < 0.21
                        , servant-server                >= 0.20.2   && < 0.21
