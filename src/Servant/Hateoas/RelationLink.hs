@@ -18,10 +18,10 @@ import Servant
 import Servant.API.ContentTypes (AllMime(..))
 import Servant.API.Modifiers (FoldRequired)
 import Network.HTTP.Media (MediaType)
+import Network.HTTP.Types (parseMethod)
 import Data.String (fromString)
 import Data.Aeson
 import Data.Text (Text, intercalate)
-import Data.Text.Encoding
 import Data.Singletons.Bool
 import GHC.TypeLits
 
@@ -30,7 +30,7 @@ data RelationLink = RelationLink
   { _path         :: Text
   , _params       :: [RelationParam]
   , _templated    :: Bool
-  , _method       :: Text
+  , _method       :: StdMethod
   , _contentTypes :: [MediaType]
   , _summary      :: Maybe Text
   , _description  :: Maybe Text
@@ -146,7 +146,7 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (Verb m s cts a) wher
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = allMime (Proxy @cts)
@@ -157,7 +157,7 @@ instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = mempty
@@ -168,7 +168,7 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (UVerb m cts as) wher
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = allMime (Proxy @cts)
@@ -179,7 +179,7 @@ instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) whe
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = decodeUtf8 $ reflectMethod (Proxy @m)
+    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = pure $ contentType (Proxy @ct)
