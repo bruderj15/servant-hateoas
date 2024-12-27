@@ -61,9 +61,13 @@ type family Normalize api where
 -- which can be turned into an API by folding it with ':>', see 'MkPrefix'.
 type GoLayers :: p -> [Type] -> [Layer]
 type family GoLayers api stand where
-  GoLayers (a :<|> b)                 prefix = GoLayers a prefix ++ GoLayers b prefix
-  GoLayers (Sym a               :> b) prefix = '[ 'Layer prefix '[Sym a]               GetIntermediate ] ++ GoLayers b (prefix ++ '[Sym a])
-  GoLayers (Capture' mods sym a :> b) prefix = '[ 'Layer prefix '[Capture' mods sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[Capture' mods sym a])
-  GoLayers (CaptureAll sym a    :> b) prefix = '[ 'Layer prefix '[CaptureAll    sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[CaptureAll    sym a])
-  GoLayers (a :> b)                   prefix = GoLayers b (prefix ++ '[a])
+  GoLayers (a :<|> b)                    prefix = GoLayers a prefix ++ GoLayers b prefix
+  GoLayers (Sym a                  :> b) prefix = '[ 'Layer prefix '[Sym a]                  GetIntermediate ] ++ GoLayers b (prefix ++ '[Sym a])
+  GoLayers (Capture'    mods sym a :> b) prefix = '[ 'Layer prefix '[Capture'    mods sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[Capture'    mods sym a])
+  GoLayers (CaptureAll       sym a :> b) prefix = '[ 'Layer prefix '[CaptureAll       sym a] GetIntermediate ] ++ GoLayers b (prefix ++ '[CaptureAll       sym a])
+  GoLayers (QueryParam' mods sym a :> b) prefix = '[ 'Layer prefix '[QueryParam' mods sym a] GetIntermediate ] ++ GoLayers b prefix
+  GoLayers (QueryParams      sym a :> b) prefix = '[ 'Layer prefix '[QueryParams      sym a] GetIntermediate ] ++ GoLayers b prefix
+  GoLayers (DeepQuery        sym a :> b) prefix = '[ 'Layer prefix '[DeepQuery        sym a] GetIntermediate ] ++ GoLayers b prefix
+  GoLayers (QueryFlag        sym   :> b) prefix = '[ 'Layer prefix '[QueryFlag        sym  ] GetIntermediate ] ++ GoLayers b prefix
+  GoLayers (a                      :> b) prefix = GoLayers b (prefix ++ '[a])
   GoLayers _ _ = '[]
