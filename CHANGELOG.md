@@ -6,6 +6,14 @@ file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PVP versioning](https://pvp.haskell.org/).
 
+## v0.3.1 _(2024-12-27)_
+
+### Added
+- Added support for layers indicating usage of queries
+
+### Changed
+- Fixed bug where instances for `BuildLayerLinks` only worked for layers whose endpoints do not take any arguments
+
 ## v0.3.0 _(2024-12-24)_
 
 ### Added

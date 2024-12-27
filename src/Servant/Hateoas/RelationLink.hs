@@ -10,14 +10,14 @@ module Servant.Hateoas.RelationLink
   appendPath,
 
   -- * Class
-  HasRelationLink(..)
+  HasRelationLink(..),
 )
 where
 
 import Servant
+import Servant.API.Modifiers (FoldRequired)
 import GHC.TypeLits
 import Data.String (fromString)
-import Data.Kind
 import Data.Aeson
 import Data.Text (Text, intercalate)
 import Data.Text.Encoding
@@ -80,21 +80,23 @@ instance HasRelationLink b => HasRelationLink (Header' mods sym a :> b) where
 instance HasRelationLink b => HasRelationLink (HttpVersion :> b) where
   toRelationLink _ = toRelationLink (Proxy @b)
 
-type family IsRequired (mods :: [Type]) :: Bool where
-  IsRequired (Required ': mods) = 'True
-  IsRequired (Optional ': mods) = 'False
-  IsRequired (mod ': mods)      = IsRequired mods
-  IsRequired '[]                = 'False
-
-instance (HasRelationLink b, KnownSymbol sym, SBoolI (IsRequired mods)) => HasRelationLink (QueryParam' mods sym a :> b) where
+instance (HasRelationLink b, KnownSymbol sym, SBoolI (FoldRequired mods)) => HasRelationLink (QueryParam' mods sym a :> b) where
   toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
     where
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
-        , _required = fromSBool $ sbool @(IsRequired mods)
+        , _required = fromSBool $ sbool @(FoldRequired mods)
         }
 
 instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryParams sym a :> b) where
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
+    where
+      param = RelationParam
+        { _name = fromString $ symbolVal (Proxy @sym)
+        , _required = False
+        }
+
+instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryFlag sym :> b) where
   toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
     where
       param = RelationParam
