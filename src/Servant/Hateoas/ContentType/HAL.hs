@@ -10,8 +10,9 @@ module Servant.Hateoas.ContentType.HAL
 )
 where
 
+import Servant
 import Servant.Hateoas.Resource
-import Servant.API.ContentTypes
+import Servant.Hateoas.RelationLink
 import qualified Network.HTTP.Media as M
 import qualified Data.Foldable as Foldable
 import Data.Some.Constraint
@@ -45,16 +46,20 @@ instance Accept (HAL JSON) where
 instance ToJSON (HALResource a) => MimeRender (HAL JSON) (HALResource a) where
   mimeRender _ = encode
 
+renderHalLink :: ResourceLink -> Value
+renderHalLink (CompleteLink l) = let uri = linkURI l in object ["href" .= uri { uriPath = "/" <> uriPath uri }]
+renderHalLink (TemplateLink l) = object $ ["href" .= l {_path  = "/" <> _path l } ] <> if _templated l then ["templated" .= True] else []
+
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
   toJSON (HALResource res ls es) = Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)
     where
-      ls' = object [fromString rel .= object ["href" .= href] | (rel, href) <- ls]
+      ls' = object [fromString rel .= renderHalLink l | (rel, l) <- ls]
       es' = object [fromString name .= toJSON e | (name, (Some1 e)) <- es]
 
 instance {-# OVERLAPPING #-} ToJSON a => ToJSON (HALResource [a]) where
   toJSON (HALResource xs ls es) = object ["_links" .= ls', "_embedded" .= object (exs <> es')]
     where
-      ls' = object [fromString rel .= object ["href" .= href] | (rel, href) <- ls]
+      ls' = object [fromString rel .= renderHalLink l | (rel, l) <- ls]
       es' = fmap (\(eName, (Some1 e)) -> fromString eName .= toJSON e) es
       exs = [ "items"
               .= (Array $ Foldable.foldl' (\xs' x -> xs' <> pure (toJSON x)) mempty xs)
