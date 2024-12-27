@@ -53,7 +53,7 @@ appendPath l r = l <> "/" <> r
 
 instance ToJSON RelationLink where
   toJSON (RelationLink path params templated _ _ _ _) = String $
-    if templated
+    if not (null params) && templated
     then path <> "{?" <> intercalate "," (_name <$> params) <> "}"
     else path
 
@@ -70,12 +70,12 @@ instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink ((sym :: Symbol
       prefix = fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Capture' mods sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (CaptureAll sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
+  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
