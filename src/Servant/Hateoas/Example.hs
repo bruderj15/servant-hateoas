@@ -23,10 +23,10 @@ instance Resource res => ToResource res User where
 
 type Api = UserApi :<|> AddressApi
 
-type UserApi = UserGetOne :<|> UserGetAll :<|> UserGetAllCool
+type UserApi = UserGetOne :<|> UserGetAll :<|> UserGetQuery
 type UserGetOne      = "api" :> "user" :> Capture "id" Int :> Get '[JSON] User
 type UserGetAll      = "api" :> "user" :> Get '[JSON] [User]
-type UserGetAllCool  = "api" :> "user" :> "him" :> QueryParam "addrId" Int :> QueryParam "income" Double :> Get '[JSON] User
+type UserGetQuery  = "api" :> "user" :> "querying" :> QueryParam "addrId" Int :> QueryParam "income" Double :> Get '[JSON] User
 
 type AddressApi = AddressGetOne
 type AddressGetOne = "api" :> "address" :> Capture "id" Int :> Get '[JSON] Address
@@ -37,7 +37,7 @@ instance HasHandler UserGetOne where
 instance HasHandler UserGetAll where
   getHandler _ _ = return [User 1 1 1000, User 2 2 2000, User 42 3 3000]
 
-instance HasHandler UserGetAllCool where
+instance HasHandler UserGetQuery where
   getHandler _ _ = \mAddrId mIncome -> return $ User 42 (maybe 0 id mAddrId) (maybe 0 id mIncome)
 
 instance HasHandler AddressGetOne where
