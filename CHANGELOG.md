@@ -6,6 +6,14 @@ file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PVP versioning](https://pvp.haskell.org/).
 
+## v0.3.3 _(2024-12-28)_
+
+### Added
+- Added function `fromURI` for creating `RelationLink` from an `URI`
+
+### Changed
+- Replaced fully templated links with partially templated links for layers whose endpoints take arguments
+
 ## v0.3.2 _(2024-12-27)_
 
 ### Changed
