@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Servant.Hateoas.RelationLink
 (
@@ -10,6 +11,13 @@ module Servant.Hateoas.RelationLink
 
   -- ** Creation
   fromURI,
+
+  -- ** Operations
+  mkPlaceHolder,
+  appendPath,
+
+  -- ** Utility
+  reflectStdMethod,
 
   -- * Class
   HasRelationLink(..),
@@ -22,7 +30,7 @@ import Servant.API.ContentTypes (AllMime(..))
 import Servant.API.Modifiers (FoldRequired)
 import Network.URI (unEscapeString)
 import Network.HTTP.Media (MediaType)
-import Network.HTTP.Types (parseMethod)
+import Network.HTTP.Types (parseMethod, Method)
 import Data.String (fromString)
 import Data.Aeson
 import Data.Text (Text, intercalate, dropWhile, split, break)
@@ -73,6 +81,13 @@ fromURI cts m (URI _ _ path query _) = RelationLink
       $ dropWhile (== '?')
       $ fromString
       $ unEscapeString query
+
+reflectStdMethod :: ReflectMethod method => Proxy method -> StdMethod
+reflectStdMethod = unsafeMethodToStdMethod . reflectMethod
+
+unsafeMethodToStdMethod :: Method -> StdMethod
+unsafeMethodToStdMethod (parseMethod -> Right m) = m
+unsafeMethodToStdMethod (parseMethod -> Left  m) = error $ "Cannot convert " <> show m <> " to StdMethod"
 
 instance ToJSON RelationLink where
   toJSON (RelationLink path params templated _ _ _ _) = String $
@@ -169,7 +184,7 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (Verb m s cts a) wher
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = allMime (Proxy @cts)
@@ -180,7 +195,7 @@ instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = mempty
@@ -191,7 +206,7 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (UVerb m cts as) wher
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = allMime (Proxy @cts)
@@ -202,7 +217,7 @@ instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) whe
     { _path = mempty
     , _params = []
     , _templated = False
-    , _method = case parseMethod $ reflectMethod (Proxy @m) of Right m -> m; Left _ -> error "Invalid method"
+    , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
     , _contentTypes = pure $ contentType (Proxy @ct)
