@@ -9,18 +9,19 @@ module Servant.Hateoas.RelationLink
   RelationLink(..),
   RelationParam(..),
 
-  -- ** Creation
+  -- *** Creation
   fromURI,
 
-  -- ** Operations
+  -- *** Operations
   mkPlaceHolder,
   appendPath,
 
-  -- ** Utility
-  reflectStdMethod,
-
-  -- * Class
+  -- ** Class
   HasRelationLink(..),
+
+  -- * Utility
+  -- ** ReflectStdMethod
+  reflectStdMethod,
 )
 where
 
