@@ -11,6 +11,7 @@ module Servant.Hateoas.Layer.Build
 where
 
 import Servant
+import Servant.API.ContentTypes
 import Servant.Hateoas.Resource
 import Servant.Hateoas.RelationLink
 import Servant.Hateoas.Layer.Type
@@ -60,97 +61,145 @@ instance
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
 
 instance
-  ( c ~ MkPrefix (apiCs ++ '[Capture' mods sym x]) verb
-  , HasRelationLink c
+  ( verb ~ Verb method status cts a
+  , AllMime cts, ReflectMethod method
+  , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
+  , HasRelationLink (MkPrefix '[Capture' mods sym x] verb)
+  , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
-  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
-  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
-  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
+  , PolyvariadicComp2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun)
+  , Return2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun) ~ (Link, [(String, ResourceLink)])
+  , Replace2 (MkLink api Link) buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   ) => BuildLayerLinks ('Layer apiCs (Capture' mods sym x ': cs) verb) m where
-  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
+  buildLayerLinks _ m = pcomp2 (\(self, ls) -> (relName, mkTemplatedNext self) : ls) mkSelf mkLinks
     where
-      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       relName = symbolVal (Proxy @sym)
-      l = TemplateLink $ toRelationLink (Proxy @c)
+      mkSelf = safeLink (Proxy @api) (Proxy @api)
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      child = toRelationLink (Proxy @(MkPrefix '[Capture' mods sym x] verb))
+      mkTemplatedNext = TemplateLink
+        . (\rl -> rl { _path = _path rl `appendPath` _path child, _templated = True })
+        . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
+        . linkURI
 
 instance
-  ( c ~ MkPrefix (apiCs ++ '[CaptureAll sym x]) verb
-  , HasRelationLink c
+  ( verb ~ Verb method status cts a
+  , AllMime cts, ReflectMethod method
+  , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
+  , HasRelationLink (MkPrefix '[CaptureAll sym x] verb)
+  , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
-  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
-  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
-  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
+  , PolyvariadicComp2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun)
+  , Return2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun) ~ (Link, [(String, ResourceLink)])
+  , Replace2 (MkLink api Link) buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   ) => BuildLayerLinks ('Layer apiCs (CaptureAll sym x ': cs) verb) m where
-  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
+  buildLayerLinks _ m = pcomp2 (\(self, ls) -> (relName, mkTemplatedNext self) : ls) mkSelf mkLinks
     where
-      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       relName = symbolVal (Proxy @sym)
-      l = TemplateLink $ toRelationLink (Proxy @c)
+      mkSelf = safeLink (Proxy @api) (Proxy @api)
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      child = toRelationLink (Proxy @(MkPrefix '[CaptureAll sym x] verb))
+      mkTemplatedNext = TemplateLink
+        . (\rl -> rl { _path = _path rl `appendPath` _path child, _templated = True })
+        . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
+        . linkURI
 
 instance
-  ( c ~ MkPrefix (apiCs ++ '[QueryParam' mods sym x]) verb
-  , HasRelationLink c
+  ( verb ~ Verb method status cts a
+  , AllMime cts, ReflectMethod method
+  , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
+  , HasRelationLink (MkPrefix '[QueryParam' mods sym x] verb)
+  , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
-  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
-  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
-  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
+  , PolyvariadicComp2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun)
+  , Return2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun) ~ (Link, [(String, ResourceLink)])
+  , Replace2 (MkLink api Link) buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   ) => BuildLayerLinks ('Layer apiCs (QueryParam' mods sym x ': cs) verb) m where
-  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
+  buildLayerLinks _ m = pcomp2 (\(self, ls) -> (relName, mkTemplatedNext self) : ls) mkSelf mkLinks
     where
-      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       relName = symbolVal (Proxy @sym)
-      l = TemplateLink $ toRelationLink (Proxy @c)
+      mkSelf = safeLink (Proxy @api) (Proxy @api)
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      child = toRelationLink (Proxy @(MkPrefix '[QueryParam' mods sym x] verb))
+      mkTemplatedNext = TemplateLink
+        . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
+        . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
+        . linkURI
 
 instance
-  ( c ~ MkPrefix (apiCs ++ '[QueryParams sym x]) verb
-  , HasRelationLink c
+  ( verb ~ Verb method status cts a
+  , AllMime cts, ReflectMethod method
+  , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
+  , HasRelationLink (MkPrefix '[QueryParams sym x] verb)
+  , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
-  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
-  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
-  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
+  , PolyvariadicComp2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun)
+  , Return2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun) ~ (Link, [(String, ResourceLink)])
+  , Replace2 (MkLink api Link) buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   ) => BuildLayerLinks ('Layer apiCs (QueryParams sym x ': cs) verb) m where
-  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
+  buildLayerLinks _ m = pcomp2 (\(self, ls) -> (relName, mkTemplatedNext self) : ls) mkSelf mkLinks
     where
-      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       relName = symbolVal (Proxy @sym)
-      l = TemplateLink $ toRelationLink (Proxy @c)
+      mkSelf = safeLink (Proxy @api) (Proxy @api)
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      child = toRelationLink (Proxy @(MkPrefix '[QueryParams sym x] verb))
+      mkTemplatedNext = TemplateLink
+        . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
+        . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
+        . linkURI
 
 instance
-  ( c ~ MkPrefix (apiCs ++ '[DeepQuery sym x]) verb
-  , HasRelationLink c
+  ( verb ~ Verb method status cts a
+  , AllMime cts, ReflectMethod method
+  , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
+  , HasRelationLink (MkPrefix '[DeepQuery sym x] verb)
+  , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
-  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
-  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
-  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
+  , PolyvariadicComp2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun)
+  , Return2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun) ~ (Link, [(String, ResourceLink)])
+  , Replace2 (MkLink api Link) buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   ) => BuildLayerLinks ('Layer apiCs (DeepQuery sym x ': cs) verb) m where
-  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
+  buildLayerLinks _ m = pcomp2 (\(self, ls) -> (relName, mkTemplatedNext self) : ls) mkSelf mkLinks
     where
-      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       relName = symbolVal (Proxy @sym)
-      l = TemplateLink $ toRelationLink (Proxy @c)
+      mkSelf = safeLink (Proxy @api) (Proxy @api)
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      child = toRelationLink (Proxy @(MkPrefix '[DeepQuery sym x] verb))
+      mkTemplatedNext = TemplateLink
+        . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
+        . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
+        . linkURI
 
 instance
-  ( c ~ MkPrefix (apiCs ++ '[QueryFlag sym]) verb
-  , HasRelationLink c
+  ( verb ~ Verb method status cts a
+  , AllMime cts, ReflectMethod method
+  , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
+  , HasRelationLink (MkPrefix '[QueryFlag sym] verb)
+  , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
-  , buildLinksFun ~ (ReplaceHandler (ServerT (MkPrefix apiCs verb) m) [(String, ResourceLink)])
-  , PolyvariadicComp buildLinksFun (IsFun buildLinksFun)
-  , Replace buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
-  , Return buildLinksFun (IsFun buildLinksFun) ~ [(String, ResourceLink)]
+  , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
+  , PolyvariadicComp2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun)
+  , Return2 (MkLink api Link) buildLinksFun (IsFun buildLinksFun) ~ (Link, [(String, ResourceLink)])
+  , Replace2 (MkLink api Link) buildLinksFun [(String, ResourceLink)] (IsFun buildLinksFun) ~ buildLinksFun
   ) => BuildLayerLinks ('Layer apiCs (QueryFlag sym ': cs) verb) m where
-  buildLayerLinks _ m = ((relName, l) :) ... mkLinks
+  buildLayerLinks _ m = pcomp2 (\(self, ls) -> (relName, mkTemplatedNext self) : ls) mkSelf mkLinks
     where
-      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       relName = symbolVal (Proxy @sym)
-      l = TemplateLink $ toRelationLink (Proxy @c)
+      mkSelf = safeLink (Proxy @api) (Proxy @api)
+      mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
+      child = toRelationLink (Proxy @(MkPrefix '[QueryFlag sym] verb))
+      mkTemplatedNext = TemplateLink
+        . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
+        . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
+        . linkURI
