@@ -83,6 +83,7 @@ fromURI cts m (URI _ _ path query _) = RelationLink
       $ fromString
       $ unEscapeString query
 
+-- | Like 'reflectMethod' but returns a 'StdMethod'.
 reflectStdMethod :: ReflectMethod method => Proxy method -> StdMethod
 reflectStdMethod = unsafeMethodToStdMethod . reflectMethod
 
