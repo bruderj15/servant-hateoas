@@ -3,25 +3,29 @@
 
 module Servant.Hateoas.RelationLink
 (
-  -- * Type
+  -- * RelationLink
+  -- ** Type
   RelationLink(..),
   RelationParam(..),
-  mkPlaceHolder,
-  appendPath,
+
+  -- ** Creation
+  fromURI,
 
   -- * Class
   HasRelationLink(..),
 )
 where
 
+import Prelude hiding (dropWhile, break)
 import Servant
 import Servant.API.ContentTypes (AllMime(..))
 import Servant.API.Modifiers (FoldRequired)
+import Network.URI (unEscapeString)
 import Network.HTTP.Media (MediaType)
 import Network.HTTP.Types (parseMethod)
 import Data.String (fromString)
 import Data.Aeson
-import Data.Text (Text, intercalate)
+import Data.Text (Text, intercalate, dropWhile, split, break)
 import Data.Singletons.Bool
 import GHC.TypeLits
 
@@ -50,6 +54,25 @@ mkPlaceHolder s = "{" <> s <> "}"
 appendPath :: Text -> Text -> Text
 appendPath l "" = l
 appendPath l r = l <> "/" <> r
+
+-- | Creates a 'RelationLink' from an 'URI'.
+fromURI :: [MediaType] -> StdMethod -> URI -> RelationLink
+fromURI cts m (URI _ _ path query _) = RelationLink
+  { _path = fromString path
+  , _params = params
+  , _templated = False
+  , _method = m
+  , _contentTypes = cts
+  , _summary = Nothing
+  , _description = Nothing
+  }
+  where
+    params = filter ((/= "") . _name)
+      $ fmap (\kv -> RelationParam (fst $ break (== '=') kv) False)
+      $ split (== '&')
+      $ dropWhile (== '?')
+      $ fromString
+      $ unEscapeString query
 
 instance ToJSON RelationLink where
   toJSON (RelationLink path params templated _ _ _ _) = String $
