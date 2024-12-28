@@ -25,7 +25,7 @@ module Servant.Hateoas.RelationLink
 )
 where
 
-import Prelude hiding (dropWhile, break)
+import Prelude hiding (drop, dropWhile, break)
 import Servant
 import Servant.API.ContentTypes (AllMime(..))
 import Servant.API.Modifiers (FoldRequired)
@@ -34,7 +34,7 @@ import Network.HTTP.Media (MediaType)
 import Network.HTTP.Types (parseMethod, Method)
 import Data.String (fromString)
 import Data.Aeson
-import Data.Text (Text, intercalate, dropWhile, split, break)
+import Data.Text (Text, intercalate, dropWhile, split, break, drop)
 import Data.Singletons.Bool
 import GHC.TypeLits
 
@@ -42,6 +42,7 @@ import GHC.TypeLits
 data RelationLink = RelationLink
   { _path         :: Text
   , _params       :: [RelationParam]
+  , _fragment     :: Maybe Text
   , _templated    :: Bool
   , _method       :: StdMethod
   , _contentTypes :: [MediaType]
@@ -53,6 +54,7 @@ data RelationLink = RelationLink
 data RelationParam = RelationParam
   { _name        :: Text
   , _required    :: Bool
+  , _value       :: Maybe Text
   } deriving (Show, Eq)
 
 -- | Create a placeholder for a URI template parameter.
@@ -66,9 +68,10 @@ appendPath l r = l <> "/" <> r
 
 -- | Creates a 'RelationLink' from an 'URI'.
 fromURI :: [MediaType] -> StdMethod -> URI -> RelationLink
-fromURI cts m (URI _ _ path query _) = RelationLink
+fromURI cts m (URI _ _ path query frag) = RelationLink
   { _path = fromString path
   , _params = params
+  , _fragment = if frag == "" then Nothing else Just $ fromString frag
   , _templated = False
   , _method = m
   , _contentTypes = cts
@@ -77,7 +80,7 @@ fromURI cts m (URI _ _ path query _) = RelationLink
   }
   where
     params = filter ((/= "") . _name)
-      $ fmap (\kv -> RelationParam (fst $ break (== '=') kv) False)
+      $ fmap (\kv -> let (k, drop 1 -> v) = break (== '=') kv in RelationParam k False $ if v == "" then Nothing else Just v)
       $ split (== '&')
       $ dropWhile (== '?')
       $ fromString
@@ -92,10 +95,10 @@ unsafeMethodToStdMethod (parseMethod -> Right m) = m
 unsafeMethodToStdMethod (parseMethod -> Left  m) = error $ "Cannot convert " <> show m <> " to StdMethod"
 
 instance ToJSON RelationLink where
-  toJSON (RelationLink path params templated _ _ _ _) = String $
+  toJSON (RelationLink path params frag templated _ _ _ _) = String $
     if not (null params) && templated
-    then path <> "{?" <> intercalate "," (_name <$> params) <> "}"
-    else path
+    then path <> "{?" <> intercalate "," (_name <$> params) <> "}" <> maybe "" (\f -> "#" <> f) frag
+    else path <> maybe "" (\f -> "#" <> f) frag
 
 -- | Class for creating a 'RelationLink' to an API.
 class HasRelationLink endpoint where
@@ -131,6 +134,7 @@ instance (HasRelationLink b, KnownSymbol sym, SBoolI (FoldRequired mods)) => Has
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
         , _required = fromSBool $ sbool @(FoldRequired mods)
+        , _value = Nothing
         }
 
 instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryParams sym a :> b) where
@@ -139,6 +143,7 @@ instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryParams sy
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
         , _required = False
+        , _value = Nothing
         }
 
 instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryFlag sym :> b) where
@@ -147,6 +152,7 @@ instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryFlag sym 
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
         , _required = False
+        , _value = Nothing
         }
 
 instance HasRelationLink b => HasRelationLink (QueryString :> b) where
@@ -158,6 +164,7 @@ instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (DeepQuery sym 
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
         , _required = False
+        , _value = Nothing
         }
 
 instance HasRelationLink b => HasRelationLink (Fragment a :> b) where
@@ -185,6 +192,7 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (Verb m s cts a) wher
   toRelationLink _ = RelationLink
     { _path = mempty
     , _params = []
+    , _fragment = Nothing
     , _templated = False
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
@@ -196,6 +204,7 @@ instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
   toRelationLink _ = RelationLink
     { _path = mempty
     , _params = []
+    , _fragment = Nothing
     , _templated = False
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
@@ -207,6 +216,7 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (UVerb m cts as) wher
   toRelationLink _ = RelationLink
     { _path = mempty
     , _params = []
+    , _fragment = Nothing
     , _templated = False
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
@@ -218,6 +228,7 @@ instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) whe
   toRelationLink _ = RelationLink
     { _path = mempty
     , _params = []
+    , _fragment = Nothing
     , _templated = False
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
