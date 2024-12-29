@@ -71,12 +71,12 @@ data RelationParam = RelationParam
 
 (<<<) :: RelationLink -> RelationLink -> RelationLink
 l1 <<< l2 =
-  l1 { _segs        = _segs        l1  <> _segs     l2
-     , _params      = _params      l1  <> _params   l2
-     , _fragment    = _fragment    l1 <|> _fragment l2
-     , _templated   = _templated   l1  || _templated l2
-     , _summary     = _summary     l1 <|> _summary  l2
-     , _description = _description l1 <|> _description l2
+  l1 { _segs        = _segs        l1  <> _segs        l2
+     , _params      = _params      l1  <> _params      l2
+     , _fragment    = _fragment    l1 <|> _fragment    l2
+     , _templated   = _templated   l1  || _templated   l2
+     , _summary     = _summary     l2 <|> _summary     l1
+     , _description = _description l2 <|> _description l1
      }
 
 getHref :: RelationLink -> Text
