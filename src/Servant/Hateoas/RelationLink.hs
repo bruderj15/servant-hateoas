@@ -17,7 +17,7 @@ module Servant.Hateoas.RelationLink
   appendPath,
 
   -- ** Class
-  HasRelationLink(..),
+  HasTemplatedLink(..),
 
   -- * Utility
   -- ** ReflectStdMethod
@@ -101,35 +101,35 @@ instance ToJSON RelationLink where
     else path <> maybe "" (\f -> "#" <> f) frag
 
 -- | Class for creating a 'RelationLink' to an API.
-class HasRelationLink endpoint where
-  toRelationLink :: Proxy endpoint -> RelationLink
+class HasTemplatedLink endpoint where
+  toTemplatedLink :: Proxy endpoint -> RelationLink
 
-instance HasRelationLink b => HasRelationLink (EmptyAPI :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (EmptyAPI :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink ((sym :: Symbol) :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
+instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink ((sym :: Symbol) :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl }
     where
       prefix = fromString $ symbolVal (Proxy @sym)
 
-instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Capture' mods sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
+instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink (Capture' mods sym a :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
-instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (CaptureAll sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
+instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink (CaptureAll sym a :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _path = prefix `appendPath` _path rl, _templated = True }
     where
       prefix = mkPlaceHolder $ fromString $ symbolVal (Proxy @sym)
 
-instance HasRelationLink b => HasRelationLink (Header' mods sym a :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (Header' mods sym a :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (HttpVersion :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (HttpVersion :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance (HasRelationLink b, KnownSymbol sym, SBoolI (FoldRequired mods)) => HasRelationLink (QueryParam' mods sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
+instance (HasTemplatedLink b, KnownSymbol sym, SBoolI (FoldRequired mods)) => HasTemplatedLink (QueryParam' mods sym a :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
     where
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
@@ -137,8 +137,8 @@ instance (HasRelationLink b, KnownSymbol sym, SBoolI (FoldRequired mods)) => Has
         , _value = Nothing
         }
 
-instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryParams sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
+instance (HasTemplatedLink b, KnownSymbol sym) => HasTemplatedLink (QueryParams sym a :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
     where
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
@@ -146,8 +146,8 @@ instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryParams sy
         , _value = Nothing
         }
 
-instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryFlag sym :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
+instance (HasTemplatedLink b, KnownSymbol sym) => HasTemplatedLink (QueryFlag sym :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
     where
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
@@ -155,11 +155,11 @@ instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (QueryFlag sym 
         , _value = Nothing
         }
 
-instance HasRelationLink b => HasRelationLink (QueryString :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (QueryString :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (DeepQuery sym a :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
+instance (HasTemplatedLink b, KnownSymbol sym) => HasTemplatedLink (DeepQuery sym a :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _params = param : _params rl, _templated = True }
     where
       param = RelationParam
         { _name = fromString $ symbolVal (Proxy @sym)
@@ -167,29 +167,29 @@ instance (HasRelationLink b, KnownSymbol sym) => HasRelationLink (DeepQuery sym 
         , _value = Nothing
         }
 
-instance HasRelationLink b => HasRelationLink (Fragment a :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (Fragment a :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (ReqBody' mods cts a :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (ReqBody' mods cts a :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (RemoteHost :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (RemoteHost :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (IsSecure :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (IsSecure :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (Vault :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (Vault :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (WithNamedContext name subs sub :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (WithNamedContext name subs sub :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance HasRelationLink b => HasRelationLink (WithResource res :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (WithResource res :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance (ReflectMethod m, AllMime cts) => HasRelationLink (Verb m s cts a) where
-  toRelationLink _ = RelationLink
+instance (ReflectMethod m, AllMime cts) => HasTemplatedLink (Verb m s cts a) where
+  toTemplatedLink _ = RelationLink
     { _path = mempty
     , _params = []
     , _fragment = Nothing
@@ -200,8 +200,8 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (Verb m s cts a) wher
     , _contentTypes = allMime (Proxy @cts)
     }
 
-instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
-  toRelationLink _ = RelationLink
+instance ReflectMethod m => HasTemplatedLink (NoContentVerb m) where
+  toTemplatedLink _ = RelationLink
     { _path = mempty
     , _params = []
     , _fragment = Nothing
@@ -212,8 +212,8 @@ instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
     , _contentTypes = mempty
     }
 
-instance (ReflectMethod m, AllMime cts) => HasRelationLink (UVerb m cts as) where
-  toRelationLink _ = RelationLink
+instance (ReflectMethod m, AllMime cts) => HasTemplatedLink (UVerb m cts as) where
+  toTemplatedLink _ = RelationLink
     { _path = mempty
     , _params = []
     , _fragment = Nothing
@@ -224,8 +224,8 @@ instance (ReflectMethod m, AllMime cts) => HasRelationLink (UVerb m cts as) wher
     , _contentTypes = allMime (Proxy @cts)
     }
 
-instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) where
-  toRelationLink _ = RelationLink
+instance (ReflectMethod m, Accept ct) => HasTemplatedLink (Stream m s f ct a) where
+  toTemplatedLink _ = RelationLink
     { _path = mempty
     , _params = []
     , _fragment = Nothing
@@ -236,15 +236,15 @@ instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) whe
     , _contentTypes = pure $ contentType (Proxy @ct)
     }
 
-instance HasRelationLink b => HasRelationLink (BasicAuth realm userData :> b) where
-  toRelationLink _ = toRelationLink (Proxy @b)
+instance HasTemplatedLink b => HasTemplatedLink (BasicAuth realm userData :> b) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
-instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Description sym :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _description = Just descr }
+instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink (Description sym :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _description = Just descr }
     where
       descr = fromString $ symbolVal (Proxy @sym)
 
-instance (KnownSymbol sym, HasRelationLink b) => HasRelationLink (Summary sym :> b) where
-  toRelationLink _ = let rl = toRelationLink (Proxy @b) in rl { _summary = Just summary }
+instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink (Summary sym :> b) where
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _summary = Just summary }
     where
       summary = fromString $ symbolVal (Proxy @sym)

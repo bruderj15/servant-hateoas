@@ -25,8 +25,8 @@ instance (HasLink api, KnownSymbol sym) => HasLink (Sym sym :> api) where
   type MkLink (Sym sym :> api) link = MkLink (sym :> api) link
   toLink f _ = toLink f (Proxy @(sym :> api))
 
-instance (HasRelationLink api, KnownSymbol sym) => HasRelationLink (Sym sym :> api) where
-  toRelationLink _ = toRelationLink (Proxy @(sym :> api))
+instance (HasTemplatedLink api, KnownSymbol sym) => HasTemplatedLink (Sym sym :> api) where
+  toTemplatedLink _ = toTemplatedLink (Proxy @(sym :> api))
 
 instance (HasHandler api, KnownSymbol sym) => HasHandler (Sym sym :> api) where
   getHandler m _ = getHandler m (Proxy @(sym :> api))

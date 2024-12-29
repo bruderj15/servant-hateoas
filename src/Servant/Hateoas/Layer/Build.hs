@@ -65,7 +65,7 @@ instance
   , AllMime cts, ReflectMethod method
   , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
-  , HasRelationLink (MkPrefix '[Capture' mods sym x] verb)
+  , HasTemplatedLink (MkPrefix '[Capture' mods sym x] verb)
   , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
@@ -78,7 +78,7 @@ instance
       relName = symbolVal (Proxy @sym)
       mkSelf = safeLink (Proxy @api) (Proxy @api)
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      child = toRelationLink (Proxy @(MkPrefix '[Capture' mods sym x] verb))
+      child = toTemplatedLink (Proxy @(MkPrefix '[Capture' mods sym x] verb))
       mkTemplatedNext = TemplateLink
         . (\rl -> rl { _path = _path rl `appendPath` _path child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
@@ -89,7 +89,7 @@ instance
   , AllMime cts, ReflectMethod method
   , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
-  , HasRelationLink (MkPrefix '[CaptureAll sym x] verb)
+  , HasTemplatedLink (MkPrefix '[CaptureAll sym x] verb)
   , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
@@ -102,7 +102,7 @@ instance
       relName = symbolVal (Proxy @sym)
       mkSelf = safeLink (Proxy @api) (Proxy @api)
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      child = toRelationLink (Proxy @(MkPrefix '[CaptureAll sym x] verb))
+      child = toTemplatedLink (Proxy @(MkPrefix '[CaptureAll sym x] verb))
       mkTemplatedNext = TemplateLink
         . (\rl -> rl { _path = _path rl `appendPath` _path child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
@@ -113,7 +113,7 @@ instance
   , AllMime cts, ReflectMethod method
   , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
-  , HasRelationLink (MkPrefix '[QueryParam' mods sym x] verb)
+  , HasTemplatedLink (MkPrefix '[QueryParam' mods sym x] verb)
   , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
@@ -126,7 +126,7 @@ instance
       relName = symbolVal (Proxy @sym)
       mkSelf = safeLink (Proxy @api) (Proxy @api)
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      child = toRelationLink (Proxy @(MkPrefix '[QueryParam' mods sym x] verb))
+      child = toTemplatedLink (Proxy @(MkPrefix '[QueryParam' mods sym x] verb))
       mkTemplatedNext = TemplateLink
         . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
@@ -137,7 +137,7 @@ instance
   , AllMime cts, ReflectMethod method
   , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
-  , HasRelationLink (MkPrefix '[QueryParams sym x] verb)
+  , HasTemplatedLink (MkPrefix '[QueryParams sym x] verb)
   , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
@@ -150,7 +150,7 @@ instance
       relName = symbolVal (Proxy @sym)
       mkSelf = safeLink (Proxy @api) (Proxy @api)
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      child = toRelationLink (Proxy @(MkPrefix '[QueryParams sym x] verb))
+      child = toTemplatedLink (Proxy @(MkPrefix '[QueryParams sym x] verb))
       mkTemplatedNext = TemplateLink
         . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
@@ -161,7 +161,7 @@ instance
   , AllMime cts, ReflectMethod method
   , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
-  , HasRelationLink (MkPrefix '[DeepQuery sym x] verb)
+  , HasTemplatedLink (MkPrefix '[DeepQuery sym x] verb)
   , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
@@ -174,7 +174,7 @@ instance
       relName = symbolVal (Proxy @sym)
       mkSelf = safeLink (Proxy @api) (Proxy @api)
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      child = toRelationLink (Proxy @(MkPrefix '[DeepQuery sym x] verb))
+      child = toTemplatedLink (Proxy @(MkPrefix '[DeepQuery sym x] verb))
       mkTemplatedNext = TemplateLink
         . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
@@ -185,7 +185,7 @@ instance
   , AllMime cts, ReflectMethod method
   , api ~ MkPrefix apiCs verb
   , KnownSymbol sym
-  , HasRelationLink (MkPrefix '[QueryFlag sym] verb)
+  , HasTemplatedLink (MkPrefix '[QueryFlag sym] verb)
   , IsElem api api, HasLink api
   , BuildLayerLinks ('Layer apiCs cs verb) m
   , buildLinksFun ~ (ReplaceHandler (ServerT api m) [(String, ResourceLink)])
@@ -198,7 +198,7 @@ instance
       relName = symbolVal (Proxy @sym)
       mkSelf = safeLink (Proxy @api) (Proxy @api)
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
-      child = toRelationLink (Proxy @(MkPrefix '[QueryFlag sym] verb))
+      child = toTemplatedLink (Proxy @(MkPrefix '[QueryFlag sym] verb))
       mkTemplatedNext = TemplateLink
         . (\rl -> rl { _params = _params rl ++ _params child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
