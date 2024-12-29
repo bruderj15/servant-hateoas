@@ -19,6 +19,7 @@ import Data.Some.Constraint
 import Data.Kind
 import Data.Aeson
 import Data.Aeson.KeyMap (singleton)
+import qualified Data.Text as Text
 import GHC.Exts
 import GHC.Generics
 
@@ -47,7 +48,10 @@ instance ToJSON (HALResource a) => MimeRender (HAL JSON) (HALResource a) where
   mimeRender _ = encode
 
 renderHalLink :: RelationLink -> Value
-renderHalLink l = object $ ["href" .= getHref l ] <> if _templated l then ["templated" .= True] else []
+renderHalLink l = object $
+  [ "href" .= getHref l
+  , "type" .= Text.intercalate "|" (fromString . show <$> _contentTypes l)
+  ] <> if _templated l then ["templated" .= True] else []
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
   toJSON (HALResource res ls es) = Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)
