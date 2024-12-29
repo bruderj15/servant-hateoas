@@ -43,6 +43,7 @@ import Servant.Hateoas.Internal.Polyvariadic
 import Network.URI (unEscapeString, pathSegments)
 import Network.HTTP.Media (MediaType)
 import Network.HTTP.Types (parseMethod, Method)
+import Data.Foldable (foldl')
 import Data.String (fromString)
 import Data.Aeson
 import Data.Text (Text, intercalate, dropWhile, split, break, drop, isPrefixOf, isSuffixOf)
