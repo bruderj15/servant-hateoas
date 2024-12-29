@@ -15,6 +15,7 @@ import Servant
 import Servant.Hateoas.Layer
 import Servant.Hateoas.Resource
 import Servant.Hateoas.HasHandler
+import Servant.Hateoas.RelationLink
 import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
 import Control.Monad.IO.Class
@@ -57,19 +58,19 @@ instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct
 instance {-# OVERLAPPABLE #-}
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
-  , mkLink ~ MkLink api Link
+  , mkLink ~ MkLink api RelationLink
   , res ~ MkResource ct
   , Resource res
   , ToResource res a
   , HasHandler api
-  , HasLink api, IsElem api api
+  , HasRelationLink api
   , PolyvariadicComp2 server mkLink (IsFun server)
-  , Return2 server mkLink (IsFun server) ~ (m a, Link)
+  , Return2 server mkLink (IsFun server) ~ (m a, RelationLink)
   , Replace2 server mkLink (m (res a)) (IsFun mkLink) ~ ResourcifyServer server ct m
   ) => HasResourceServer (api :: Type) m ct where
-  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel (CompleteLink self) . toResource (Proxy @res)) <$> ma)) (getHandler m api) mkSelf
+  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel self . toResource (Proxy @res)) <$> ma)) (getHandler m api) mkSelf
     where
-      mkSelf = safeLink api api
+      mkSelf = toRelationLink api
 
 instance
   ( api ~ LayerApi l
@@ -77,11 +78,11 @@ instance
   , ServerT (Resourcify l ct) m ~ ResourcifyServer (ServerT l m) ct m
   , rServer ~ ResourcifyServer (ServerT l m) ct m
   , res ~ MkResource ct
-  , buildFun ~ ReplaceHandler rServer [(String, ResourceLink)]
+  , buildFun ~ ReplaceHandler rServer [(String, RelationLink)]
   , Resource res
   , BuildLayerLinks (Resourcify l ct) m
   , PolyvariadicComp buildFun (IsFun buildFun)
-  , Return buildFun (IsFun buildFun) ~ [(String, ResourceLink)]
+  , Return buildFun (IsFun buildFun) ~ [(String, RelationLink)]
   , Replace buildFun (m (res Intermediate)) (IsFun buildFun) ~ rServer
   ) => HasResourceServer l m ct where
   getResourceServer m _ _ = (return @m . foldr addRel (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) m
