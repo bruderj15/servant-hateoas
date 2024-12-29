@@ -14,6 +14,7 @@ module Servant.Hateoas.RelationLink
   fromURI,
 
   -- *** Operations
+  (<<<),
   getHref,
   getPath,
   getParams,
@@ -46,6 +47,7 @@ import Data.String (fromString)
 import Data.Aeson
 import Data.Text (Text, intercalate, dropWhile, split, break, drop, isPrefixOf, isSuffixOf)
 import Data.Singletons.Bool
+import Control.Applicative ((<|>))
 import GHC.TypeLits
 
 -- | Link data-type for hypermedia-links in HATEOAS with potentially templated URIs.
@@ -66,6 +68,16 @@ data RelationParam = RelationParam
   , _required    :: Bool
   , _value       :: Maybe Text
   } deriving (Show, Eq)
+
+(<<<) :: RelationLink -> RelationLink -> RelationLink
+l1 <<< l2 =
+  l1 { _segs        = _segs        l1  <> _segs     l2
+     , _params      = _params      l1  <> _params   l2
+     , _fragment    = _fragment    l1 <|> _fragment l2
+     , _templated   = _templated   l1  || _templated l2
+     , _summary     = _summary     l1 <|> _summary  l2
+     , _description = _description l1 <|> _description l2
+     }
 
 getHref :: RelationLink -> Text
 getHref l = getPath l <> getParams l <> maybe "" (\f -> "#" <> f) (_fragment l)
