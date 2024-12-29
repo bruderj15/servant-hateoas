@@ -39,7 +39,7 @@ data ResourceLink =
 
 instance ToJSON ResourceLink where
   toJSON (CompleteLink l) = let uri = linkURI l in toJSON $ uri { uriPath = "/" <> uriPath uri }
-  toJSON (TemplateLink l) = toJSON $ l { _path = "/" <> _path l }
+  toJSON (TemplateLink l) = toJSON l
 
 -- | Class for resources that carry Hypermedia-Relations.
 class Resource res where

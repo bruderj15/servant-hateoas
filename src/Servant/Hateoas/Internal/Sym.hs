@@ -28,6 +28,9 @@ instance (HasLink api, KnownSymbol sym) => HasLink (Sym sym :> api) where
 instance (HasTemplatedLink api, KnownSymbol sym) => HasTemplatedLink (Sym sym :> api) where
   toTemplatedLink _ = toTemplatedLink (Proxy @(sym :> api))
 
+instance (KnownSymbol sym, HasRelationLink (sym :> api), HasLink api) => HasRelationLink (Sym sym :> api) where
+  toRelationLink _ = toRelationLink (Proxy @(sym :> api))
+
 instance (HasHandler api, KnownSymbol sym) => HasHandler (Sym sym :> api) where
   getHandler m _ = getHandler m (Proxy @(sym :> api))
 

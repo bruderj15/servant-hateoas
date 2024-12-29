@@ -48,7 +48,7 @@ instance ToJSON (HALResource a) => MimeRender (HAL JSON) (HALResource a) where
 
 renderHalLink :: ResourceLink -> Value
 renderHalLink (CompleteLink l) = let uri = linkURI l in object ["href" .= uri { uriPath = "/" <> uriPath uri }]
-renderHalLink (TemplateLink l) = object $ ["href" .= l {_path  = "/" <> _path l } ] <> if _templated l then ["templated" .= True] else []
+renderHalLink (TemplateLink l) = object $ ["href" .= getHref l ] <> if _templated l then ["templated" .= True] else []
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
   toJSON (HALResource res ls es) = Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)

@@ -80,7 +80,7 @@ instance
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       child = toTemplatedLink (Proxy @(MkPrefix '[Capture' mods sym x] verb))
       mkTemplatedNext = TemplateLink
-        . (\rl -> rl { _path = _path rl `appendPath` _path child, _templated = True })
+        . (\rl -> rl { _segs = _segs rl ++ _segs child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
         . linkURI
 
@@ -104,7 +104,7 @@ instance
       mkLinks = buildLayerLinks (Proxy @('Layer apiCs cs verb)) m
       child = toTemplatedLink (Proxy @(MkPrefix '[CaptureAll sym x] verb))
       mkTemplatedNext = TemplateLink
-        . (\rl -> rl { _path = _path rl `appendPath` _path child, _templated = True })
+        . (\rl -> rl { _segs = _segs rl ++ _segs child, _templated = True })
         . fromURI (allMime $ Proxy @cts) (reflectStdMethod (Proxy @method))
         . linkURI
 
