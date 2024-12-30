@@ -1,5 +1,6 @@
 module Servant.Hateoas
-( module Servant.Hateoas.ContentType.HAL
+( module Servant.Hateoas.Combinator.Title
+, module Servant.Hateoas.ContentType.HAL
 , module Servant.Hateoas.ResourceServer
 , module Servant.Hateoas.RelationLink
 , module Servant.Hateoas.HasHandler
@@ -7,6 +8,7 @@ module Servant.Hateoas
 , module Servant.Hateoas.Layer
 ) where
 
+import Servant.Hateoas.Combinator.Title
 import Servant.Hateoas.ContentType.HAL (HAL, HALResource)
 import Servant.Hateoas.ResourceServer
 import Servant.Hateoas.RelationLink

@@ -7,6 +7,7 @@ module Servant.Hateoas.ResourceServer
 
   -- * Type-Families
   Resourcify,
+  resourcifyProxy,
   ResourcifyServer
 )
 where
@@ -15,6 +16,7 @@ import Servant
 import Servant.Hateoas.Layer
 import Servant.Hateoas.Resource
 import Servant.Hateoas.HasHandler
+import Servant.Hateoas.RelationLink
 import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
 import Control.Monad.IO.Class
@@ -29,6 +31,10 @@ type family Resourcify api ct where
   Resourcify ('Layer api cs verb) ct = 'Layer (Resourcify api ct) (Resourcify cs ct) (Resourcify verb ct)
   Resourcify (x:xs)          ct = Resourcify x ct : Resourcify xs ct
   Resourcify a               _  = a
+
+-- | A proxy function for 'Resourcify'.
+resourcifyProxy :: forall api ct. Proxy api -> Proxy ct -> Proxy (Resourcify api ct)
+resourcifyProxy _ _ = Proxy @(Resourcify api ct)
 
 -- | Turns a 'ServerT' into a resourceful 'ServerT' by replacing the result type @m a@ of the function @server@ with @m (res a)@ where
 -- @res := 'MkResource' ct@.
@@ -57,19 +63,20 @@ instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct
 instance {-# OVERLAPPABLE #-}
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
-  , mkLink ~ MkLink api Link
+  , mkLink ~ MkLink (Resourcify api ct) RelationLink
+  , Accept ct
   , res ~ MkResource ct
   , Resource res
   , ToResource res a
   , HasHandler api
-  , HasLink api, IsElem api api
+  , HasRelationLink (Resourcify api ct)
   , PolyvariadicComp2 server mkLink (IsFun server)
-  , Return2 server mkLink (IsFun server) ~ (m a, Link)
+  , Return2 server mkLink (IsFun server) ~ (m a, RelationLink)
   , Replace2 server mkLink (m (res a)) (IsFun mkLink) ~ ResourcifyServer server ct m
   ) => HasResourceServer (api :: Type) m ct where
-  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel (CompleteLink self) . toResource (Proxy @res)) <$> ma)) (getHandler m api) mkSelf
+  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel self . toResource (Proxy @res) (Proxy @ct)) <$> ma)) (getHandler m api) mkSelf
     where
-      mkSelf = safeLink api api
+      mkSelf = toRelationLink (Proxy @(Resourcify api ct))
 
 instance
   ( api ~ LayerApi l
@@ -77,11 +84,11 @@ instance
   , ServerT (Resourcify l ct) m ~ ResourcifyServer (ServerT l m) ct m
   , rServer ~ ResourcifyServer (ServerT l m) ct m
   , res ~ MkResource ct
-  , buildFun ~ ReplaceHandler rServer [(String, ResourceLink)]
+  , buildFun ~ ReplaceHandler rServer [(String, RelationLink)]
   , Resource res
   , BuildLayerLinks (Resourcify l ct) m
   , PolyvariadicComp buildFun (IsFun buildFun)
-  , Return buildFun (IsFun buildFun) ~ [(String, ResourceLink)]
+  , Return buildFun (IsFun buildFun) ~ [(String, RelationLink)]
   , Replace buildFun (m (res Intermediate)) (IsFun buildFun) ~ rServer
   ) => HasResourceServer l m ct where
   getResourceServer m _ _ = (return @m . foldr addRel (wrap @res $ Intermediate ())) ... buildLayerLinks (Proxy @(Resourcify l ct)) m

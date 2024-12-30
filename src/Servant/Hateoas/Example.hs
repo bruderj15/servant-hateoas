@@ -17,16 +17,16 @@ data Address = Address { addrId :: Int, street :: String, city :: String }
   deriving anyclass (ToJSON, ToResource res)
 
 instance Resource res => ToResource res User where
-  toResource _ usr = addRel ("address", CompleteLink $ mkAddrLink $ addressId usr) $ wrap usr
+  toResource _ ct usr = addRel ("address", mkAddrLink $ addressId usr) $ wrap usr
     where
-      mkAddrLink = safeLink (Proxy @AddressGetOne) (Proxy @AddressGetOne)
+      mkAddrLink = toRelationLink $ resourcifyProxy (Proxy @AddressGetOne) ct
 
 type Api = UserApi :<|> AddressApi
 
 type UserApi = UserGetOne :<|> UserGetAll :<|> UserGetQuery
-type UserGetOne      = "api" :> "user" :> Capture "id" Int :> Get '[JSON] User
-type UserGetAll      = "api" :> "user" :> Get '[JSON] [User]
-type UserGetQuery  = "api" :> "user" :> "querying" :> QueryParam "addrId" Int :> QueryParam "income" Double :> Get '[JSON] User
+type UserGetOne    = "api" :> "user" :> Title "The user with the given id" :> Capture "id" Int :> Get '[JSON] User
+type UserGetAll    = "api" :> "user" :> Get '[JSON] [User]
+type UserGetQuery  = "api" :> "user" :> "query" :>QueryParam "addrId" Int :> QueryParam "income" Double :> Get '[JSON] User
 
 type AddressApi = AddressGetOne
 type AddressGetOne = "api" :> "address" :> Capture "id" Int :> Get '[JSON] Address

@@ -19,6 +19,7 @@ import Data.Some.Constraint
 import Data.Kind
 import Data.Aeson
 import Data.Aeson.KeyMap (singleton)
+import qualified Data.Text as Text
 import GHC.Exts
 import GHC.Generics
 
@@ -32,7 +33,7 @@ type instance MkResource (HAL t) = HALResource
 -- | HAL-resource representation.
 data HALResource a = HALResource
   { resource :: a                                       -- ^ Wrapped resource
-  , rels     :: [(String, ResourceLink)]                -- ^ Pairs @(rel, link)@ for hypermedia relations
+  , rels     :: [(String, RelationLink)]                -- ^ Pairs @(rel, link)@ for hypermedia relations
   , embedded :: [(String, SomeF HALResource ToJSON)]    -- ^ Pairs @(rel, resource)@ for embedded resources
   } deriving (Generic, Functor)
 
@@ -46,9 +47,12 @@ instance Accept (HAL JSON) where
 instance ToJSON (HALResource a) => MimeRender (HAL JSON) (HALResource a) where
   mimeRender _ = encode
 
-renderHalLink :: ResourceLink -> Value
-renderHalLink (CompleteLink l) = let uri = linkURI l in object ["href" .= uri { uriPath = "/" <> uriPath uri }]
-renderHalLink (TemplateLink l) = object $ ["href" .= l {_path  = "/" <> _path l } ] <> if _templated l then ["templated" .= True] else []
+renderHalLink :: RelationLink -> Value
+renderHalLink l = object $
+  [ "href" .= getHref l
+  , "type" .= Text.intercalate "|" (fromString . show <$> _contentTypes l)
+  ] <> if _templated l then ["templated" .= True] else []
+    <> maybe mempty (\t -> ["title" .= t]) (_title l)
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
   toJSON (HALResource res ls es) = Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)
