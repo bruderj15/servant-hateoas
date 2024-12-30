@@ -320,12 +320,12 @@ instance HasTemplatedLink b => HasTemplatedLink (BasicAuth realm userData :> b) 
   toTemplatedLink _ = toTemplatedLink (Proxy @b)
 
 instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink (Description sym :> b) where
-  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _description = Just descr }
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _description = _description rl <|> Just descr }
     where
       descr = fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink (Summary sym :> b) where
-  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _summary = Just summary }
+  toTemplatedLink _ = let rl = toTemplatedLink (Proxy @b) in rl { _summary = _summary rl <|> Just summary }
     where
       summary = fromString $ symbolVal (Proxy @sym)
 
@@ -401,12 +401,12 @@ instance (KnownSymbol sym, RightLink b) => HasRelationLink ((sym :: Symbol) :> b
       seg = fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, RightLink b) => HasRelationLink (Summary sym :> b) where
-  toRelationLink _ = (\rl -> rl { _summary = Just summary }) ... toRelationLink (Proxy @b)
+  toRelationLink _ = (\rl -> rl { _summary = _summary rl <|> Just summary }) ... toRelationLink (Proxy @b)
     where
       summary = fromString $ symbolVal (Proxy @sym)
 
 instance (KnownSymbol sym, RightLink b) => HasRelationLink (Description sym :> b) where
-  toRelationLink _ = (\rl -> rl { _description = Just descr }) ... toRelationLink (Proxy @b)
+  toRelationLink _ = (\rl -> rl { _description = _description rl <|> Just descr }) ... toRelationLink (Proxy @b)
     where
       descr = fromString $ symbolVal (Proxy @sym)
 
