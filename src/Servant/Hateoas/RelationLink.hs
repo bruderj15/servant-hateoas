@@ -23,11 +23,11 @@ module Servant.Hateoas.RelationLink
   addParam,
   addParams,
   mkPlaceHolder,
-  appendPath,
 
   -- ** Class
-  HasRelationLink(..),
   HasTemplatedLink(..),
+  HasRelationLink(..),
+  RightLink,
 
   -- * Utility
   -- ** ReflectStdMethod
@@ -44,6 +44,7 @@ import Network.URI (unEscapeString, pathSegments)
 import Network.HTTP.Media (MediaType)
 import Network.HTTP.Types (parseMethod, Method)
 import Data.Foldable (foldl')
+import Data.Maybe
 import Data.String (fromString)
 import Data.Aeson
 import Data.Text (Text, intercalate, dropWhile, split, break, drop, isPrefixOf, isSuffixOf)
@@ -70,22 +71,31 @@ data RelationParam = RelationParam
   , _value       :: Maybe Text
   } deriving (Show, Eq)
 
+-- | Shifting append-operator for 'RelationLink'.
+--
+-- This operator can be seen as a monoidal append for 'RelationLink' with a right-bias for meta information
+-- e.g. '_method', '_contentTypes', '_summary' and '_description'.
 (<<<) :: RelationLink -> RelationLink -> RelationLink
 l1 <<< l2 =
-  l1 { _segs        = _segs        l1  <> _segs        l2
-     , _params      = _params      l1  <> _params      l2
-     , _fragment    = _fragment    l1 <|> _fragment    l2
-     , _templated   = _templated   l1  || _templated   l2
-     , _summary     = _summary     l2 <|> _summary     l1
-     , _description = _description l2 <|> _description l1
+  l1 { _segs         = _segs         l1  <> _segs        l2
+     , _params       = _params       l1  <> _params      l2
+     , _fragment     = _fragment     l1 <|> _fragment    l2
+     , _templated    = _templated    l1  || _templated   l2
+     , _method       = _method       l2
+     , _contentTypes = _contentTypes l2
+     , _summary      = _summary      l2 <|> _summary     l1
+     , _description  = _description  l2 <|> _description l1
      }
 
+-- | Get the hypermedia-reference of a 'RelationLink'.
 getHref :: RelationLink -> Text
 getHref l = getPath l <> getParams l <> maybe "" (\f -> "#" <> f) (_fragment l)
 
+-- | Get the path of a 'RelationLink' as in 'getHref'.
 getPath :: RelationLink -> Text
 getPath = ("/" <>) .  intercalate "/" . _segs
 
+-- | Get the parameters of a 'RelationLink' as in 'getHref'.
 getParams :: RelationLink -> Text
 getParams link =
      (if filledParams == [] then "" else "?" <> intercalate "&" (fmap (\(k,v) -> k <> "=" <> v) filledParams))
@@ -97,31 +107,39 @@ getParams link =
         ([], []) $
         _params link
 
+-- | Prepend a path segment to a 'RelationLink'.
+--
+-- Takes care of potential templating.
 prependSeg :: Text -> RelationLink -> RelationLink
 prependSeg seg l
   | "{" `isPrefixOf` seg && "}" `isSuffixOf` seg = l { _segs = seg : _segs l, _templated = True }
   | otherwise = l { _segs = seg : _segs l }
 
+-- | Prepend path segments to a 'RelationLink'.
+--
+-- Takes care of potential templating.
 prependSegs :: [Text] -> RelationLink -> RelationLink
 prependSegs segs l
   | any (\seg -> "{" `isPrefixOf` seg && "}" `isSuffixOf` seg) segs = l { _segs = segs <> _segs l, _templated = True }
   | otherwise                                                       = l { _segs = segs <> _segs l }
 
+-- | Add a parameter to a 'RelationLink'.
+--
+-- Takes care of potential templating.
 addParam :: RelationParam -> RelationLink -> RelationLink
-addParam p l = l { _params = p : _params l }
+addParam p l = l { _params = p : _params l, _templated = _templated l || isNothing (_value p) }
 
+-- | Add parameters to a 'RelationLink'.
+--
+-- Takes care of potential templating.
 addParams :: [RelationParam] -> RelationLink -> RelationLink
-addParams ps l = l { _params = ps <> _params l }
+addParams ps l = l { _params = ps <> _params l, _templated = _templated l || any (isNothing . _value) ps }
 
--- | Create a placeholder for a URI template parameter.
+-- | Create a placeholder for a template path segment.
 mkPlaceHolder :: Text -> Text
 mkPlaceHolder s = "{" <> s <> "}"
 
--- | Append a path to a URI.
-appendPath :: Text -> Text -> Text
-appendPath l "" = l
-appendPath l r = l <> "/" <> r
-
+-- | Creates a 'RelationLink' from a 'Link'.
 fromLink :: [MediaType] -> StdMethod -> Link -> RelationLink
 fromLink cts m = fromURI cts m . linkURI
 
@@ -156,7 +174,7 @@ unsafeMethodToStdMethod (parseMethod -> Left  m) = error $ "Cannot convert " <> 
 instance ToJSON RelationLink where
   toJSON = String . getHref
 
--- | Class for creating a 'RelationLink' to an API.
+-- | Class for creating a templated 'RelationLink' to an endpoint.
 class HasTemplatedLink endpoint where
   toTemplatedLink :: Proxy endpoint -> RelationLink
 
@@ -305,11 +323,13 @@ instance (KnownSymbol sym, HasTemplatedLink b) => HasTemplatedLink (Summary sym 
     where
       summary = fromString $ symbolVal (Proxy @sym)
 
-
-
+-- | Class for creating a 'RelationLink' to an endpoint.
+--
+-- This is highly similar to 'HasLink' but it also gathers HATEOAS meta-information for the resource a link refers to.
 class HasLink endpoint => HasRelationLink endpoint where
   toRelationLink :: Proxy endpoint -> MkLink endpoint RelationLink
 
+-- | Convenience alias-constraint for right-hand sides of @a ':>' b@ where b is some function producing a 'RelationLink'.
 type RightLink b =
   ( HasRelationLink b
   , PolyvariadicComp (MkLink b RelationLink) (IsFun (MkLink b RelationLink))
