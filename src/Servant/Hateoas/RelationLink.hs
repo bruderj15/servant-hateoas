@@ -62,6 +62,7 @@ data RelationLink = RelationLink
   , _contentTypes :: [MediaType]
   , _summary      :: Maybe Text
   , _description  :: Maybe Text
+  , _title        :: Maybe Text
   } deriving (Show, Eq)
 
 -- | Parameter data-type for hypermedia-links in HATEOAS.
@@ -154,6 +155,7 @@ fromURI cts m uri@(URI _ _ _ query frag) = RelationLink
   , _contentTypes = cts
   , _summary = Nothing
   , _description = Nothing
+  , _title = Nothing
   }
   where
     params = filter ((/= "") . _name)
@@ -268,10 +270,11 @@ instance (ReflectMethod m, AllMime cts) => HasTemplatedLink (Verb m s cts a) whe
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = allMime (Proxy @cts)
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = allMime (Proxy @cts)
+    , _title = Nothing
     }
 
 instance ReflectMethod m => HasTemplatedLink (NoContentVerb m) where
@@ -280,10 +283,11 @@ instance ReflectMethod m => HasTemplatedLink (NoContentVerb m) where
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = mempty
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = mempty
+    , _title = Nothing
     }
 
 instance (ReflectMethod m, AllMime cts) => HasTemplatedLink (UVerb m cts as) where
@@ -292,10 +296,11 @@ instance (ReflectMethod m, AllMime cts) => HasTemplatedLink (UVerb m cts as) whe
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = allMime (Proxy @cts)
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = allMime (Proxy @cts)
+    , _title = Nothing
     }
 
 instance (ReflectMethod m, Accept ct) => HasTemplatedLink (Stream m s f ct a) where
@@ -304,10 +309,11 @@ instance (ReflectMethod m, Accept ct) => HasTemplatedLink (Stream m s f ct a) wh
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = pure $ contentType (Proxy @ct)
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = pure $ contentType (Proxy @ct)
+    , _title = Nothing
     }
 
 instance HasTemplatedLink b => HasTemplatedLink (BasicAuth realm userData :> b) where
@@ -343,10 +349,11 @@ instance (AllMime cts, ReflectMethod m) => HasRelationLink (Verb m s cts a) wher
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = allMime (Proxy @cts)
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = allMime (Proxy @cts)
+    , _title = Nothing
     }
 
 instance (AllMime cts, ReflectMethod m) => HasRelationLink (UVerb m cts as) where
@@ -355,10 +362,11 @@ instance (AllMime cts, ReflectMethod m) => HasRelationLink (UVerb m cts as) wher
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = allMime (Proxy @cts)
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = allMime (Proxy @cts)
+    , _title = Nothing
     }
 
 instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
@@ -367,10 +375,11 @@ instance ReflectMethod m => HasRelationLink (NoContentVerb m) where
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = mempty
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = mempty
+    , _title = Nothing
     }
 
 instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) where
@@ -379,10 +388,11 @@ instance (ReflectMethod m, Accept ct) => HasRelationLink (Stream m s f ct a) whe
     , _params = []
     , _fragment = Nothing
     , _templated = False
+    , _contentTypes = pure $ contentType (Proxy @ct)
     , _method = reflectStdMethod (Proxy @m)
     , _summary = Nothing
     , _description = Nothing
-    , _contentTypes = pure $ contentType (Proxy @ct)
+    , _title = Nothing
     }
 
 instance (KnownSymbol sym, RightLink b) => HasRelationLink ((sym :: Symbol) :> b) where
