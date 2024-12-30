@@ -55,8 +55,8 @@ class Resource res => CollectingResource res where
 -- Therefore you can derive an instance for this class.
 class ToResource res a where
   -- | Describes how a value @a@ can be converted to a 'Resource'.
-  toResource :: Proxy res -> a -> res a
-  default toResource :: Resource res => Proxy res -> a -> res a
-  toResource _ = wrap
+  toResource :: (res ~ MkResource ct, Accept ct) => Proxy res -> Proxy ct -> a -> res a
+  default toResource :: (res ~ MkResource ct, Resource res) => Proxy res -> Proxy ct -> a -> res a
+  toResource _ _ = wrap
 
 instance Resource res => ToResource res [a]

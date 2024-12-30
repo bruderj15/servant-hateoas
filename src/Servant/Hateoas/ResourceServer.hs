@@ -7,6 +7,7 @@ module Servant.Hateoas.ResourceServer
 
   -- * Type-Families
   Resourcify,
+  resourcifyProxy,
   ResourcifyServer
 )
 where
@@ -30,6 +31,10 @@ type family Resourcify api ct where
   Resourcify ('Layer api cs verb) ct = 'Layer (Resourcify api ct) (Resourcify cs ct) (Resourcify verb ct)
   Resourcify (x:xs)          ct = Resourcify x ct : Resourcify xs ct
   Resourcify a               _  = a
+
+-- | A proxy function for 'Resourcify'.
+resourcifyProxy :: forall api ct. Proxy api -> Proxy ct -> Proxy (Resourcify api ct)
+resourcifyProxy _ _ = Proxy @(Resourcify api ct)
 
 -- | Turns a 'ServerT' into a resourceful 'ServerT' by replacing the result type @m a@ of the function @server@ with @m (res a)@ where
 -- @res := 'MkResource' ct@.
@@ -59,6 +64,7 @@ instance {-# OVERLAPPABLE #-}
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
   , mkLink ~ MkLink (Resourcify api ct) RelationLink
+  , Accept ct
   , res ~ MkResource ct
   , Resource res
   , ToResource res a
@@ -68,7 +74,7 @@ instance {-# OVERLAPPABLE #-}
   , Return2 server mkLink (IsFun server) ~ (m a, RelationLink)
   , Replace2 server mkLink (m (res a)) (IsFun mkLink) ~ ResourcifyServer server ct m
   ) => HasResourceServer (api :: Type) m ct where
-  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel self . toResource (Proxy @res)) <$> ma)) (getHandler m api) mkSelf
+  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel self . toResource (Proxy @res) (Proxy @ct)) <$> ma)) (getHandler m api) mkSelf
     where
       mkSelf = toRelationLink (Proxy @(Resourcify api ct))
 
