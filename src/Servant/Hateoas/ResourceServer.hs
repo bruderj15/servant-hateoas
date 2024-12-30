@@ -58,19 +58,19 @@ instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct
 instance {-# OVERLAPPABLE #-}
   ( server ~ ServerT api m
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
-  , mkLink ~ MkLink api RelationLink
+  , mkLink ~ MkLink (Resourcify api ct) RelationLink
   , res ~ MkResource ct
   , Resource res
   , ToResource res a
   , HasHandler api
-  , HasRelationLink api
+  , HasRelationLink (Resourcify api ct)
   , PolyvariadicComp2 server mkLink (IsFun server)
   , Return2 server mkLink (IsFun server) ~ (m a, RelationLink)
   , Replace2 server mkLink (m (res a)) (IsFun mkLink) ~ ResourcifyServer server ct m
   ) => HasResourceServer (api :: Type) m ct where
   getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel self . toResource (Proxy @res)) <$> ma)) (getHandler m api) mkSelf
     where
-      mkSelf = toRelationLink api
+      mkSelf = toRelationLink (Proxy @(Resourcify api ct))
 
 instance
   ( api ~ LayerApi l
