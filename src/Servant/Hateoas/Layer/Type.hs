@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Servant.Hateoas.Layer.Type
 (
@@ -105,8 +106,6 @@ instance (HasServer l context, HasServer ls context) => HasServer (l ': ls :: [L
 -- | A response type for a 'Layer' that does not contain any data.
 newtype Intermediate = Intermediate ()
   deriving newtype (Show, Eq, Ord, ToJSON)
+  deriving anyclass (ToResource res)
 
 type GetIntermediate = Get '[] Intermediate
-
-instance Resource res => ToResource res Intermediate where
-  toResource _ _ = wrap $ Intermediate ()

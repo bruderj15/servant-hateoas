@@ -6,6 +6,17 @@ file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PVP versioning](https://pvp.haskell.org/).
 
+## v0.3.4 _(2024-12-30)_
+
+### Added
+- Added class `HasTemplateLink` for fully templated links to endpoints
+- Added combinator `data Title (sym :: Symbol)` for human-readable titles of resources
+
+### Changed
+- Class `HasRelationLink` now returns complete links instead of partially templated ones
+- Replaced all usages of `Link` with `RelationLink`, allowing more flexibility when gathering information about the resource the link refers to
+- Extended the rendering of `HALResource` by props `type` (Content-Type) and `title`
+
 ## v0.3.3 _(2024-12-28)_
 
 ### Added

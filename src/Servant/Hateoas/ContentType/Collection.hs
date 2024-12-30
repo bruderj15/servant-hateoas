@@ -8,6 +8,7 @@ module Servant.Hateoas.ContentType.Collection
 where
 
 import Servant.Hateoas.Resource
+import Servant.Hateoas.RelationLink
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
 import Servant.Links
@@ -28,7 +29,7 @@ type instance MkResource (Collection t) = CollectionResource
 data CollectionResource a = CollectionResource
   { href  :: Maybe URI                   -- ^ Link to the collection
   , items :: [CollectionItem a]          -- ^ All items in the collection
-  , rels  :: [(String, ResourceLink)]    -- ^ Pairs @(rel, link)@ for relations
+  , rels  :: [(String, RelationLink)]    -- ^ Pairs @(rel, link)@ for relations
   } deriving (Show, Generic, Functor)
 
 instance Semigroup (CollectionResource a) where
@@ -40,7 +41,7 @@ instance Monoid (CollectionResource a) where
 -- | A single item inside a 'CollectionResource'.
 data CollectionItem a = CollectionItem
   { item :: a                             -- ^ Wrapped item
-  , itemLinks :: [(String, ResourceLink)]         -- ^ Links for the wrapped item
+  , itemLinks :: [(String, RelationLink)]         -- ^ Links for the wrapped item
   } deriving (Show, Generic, Functor)
 
 instance Resource CollectionResource where
@@ -57,7 +58,7 @@ instance Accept (Collection JSON) where
 instance ToJSON (CollectionResource a) => MimeRender (Collection JSON) (CollectionResource a) where
   mimeRender _ = encode
 
-collectionLinks :: [(String, ResourceLink)] -> Value
+collectionLinks :: [(String, RelationLink)] -> Value
 collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= l]) <> xs) mempty
 
 -- TODO: I dont like this at all
