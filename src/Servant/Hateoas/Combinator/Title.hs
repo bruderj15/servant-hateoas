@@ -10,6 +10,7 @@ import Data.String (fromString)
 import Control.Applicative ((<|>))
 import GHC.TypeLits
 
+-- | Combinator similar to 'Summary' and 'Description' but for the human readable title of the resource a 'RelationLink' refers to.
 data Title (sym :: Symbol)
 
 instance HasLink b => HasLink (Title sym :> b) where

@@ -52,6 +52,7 @@ renderHalLink l = object $
   [ "href" .= getHref l
   , "type" .= Text.intercalate "|" (fromString . show <$> _contentTypes l)
   ] <> if _templated l then ["templated" .= True] else []
+    <> maybe mempty (\t -> ["title" .= t]) (_title l)
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
   toJSON (HALResource res ls es) = Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)

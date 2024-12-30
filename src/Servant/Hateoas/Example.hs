@@ -24,7 +24,7 @@ instance Resource res => ToResource res User where
 type Api = UserApi :<|> AddressApi
 
 type UserApi = UserGetOne :<|> UserGetAll :<|> UserGetQuery
-type UserGetOne    = "api" :> "user" :> Capture "id" Int :> Get '[JSON] User
+type UserGetOne    = "api" :> "user" :> Title "The user with the given id" :> Capture "id" Int :> Get '[JSON] User
 type UserGetAll    = "api" :> "user" :> Get '[JSON] [User]
 type UserGetQuery  = "api" :> "user" :> "querying" :> QueryParam "addrId" Int :> QueryParam "income" Double :> Get '[JSON] User
 
