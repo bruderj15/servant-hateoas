@@ -61,9 +61,9 @@ instance ToResource res Address
 
 -- add a link to the address-resource with the relation "address" for the user-resource
 instance Resource res => ToResource res User where
-  toResource _ usr = addRel ("address", CompleteLink $ mkAddrLink $ addressId usr) $ wrap usr
+  toResource _ ct usr = addRel ("address", mkAddrLink $ addressId usr) $ wrap usr
     where
-      mkAddrLink = safeLink (Proxy @AddressGetOne) (Proxy @AddressGetOne)
+      mkAddrLink = toRelationLink $ resourcifyProxy (Proxy @AddressGetOne) ct
 ```
 
 Further we define our API as usual:
