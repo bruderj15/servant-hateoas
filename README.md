@@ -70,9 +70,10 @@ Further we define our API as usual:
 ```haskell
 type Api = UserApi :<|> AddressApi
 
-type UserApi = UserGetOne :<|> UserGetAll :<|> UserGetAllCool
-type UserGetOne     = "api" :> "user" :> Capture "id" Int :> Get '[JSON] User
-type UserGetAll     = "api" :> "user" :> Get '[JSON] [User]
+type UserApi = UserGetOne :<|> UserGetAll :<|> UserGetQuery
+type UserGetOne    = "api" :> "user" :> Title "The user with the given id" :> Capture "id" Int :> Get '[JSON] User
+type UserGetAll    = "api" :> "user" :> Get '[JSON] [User]
+type UserGetQuery  = "api" :> "user" :> "query" :> QueryParam "addrId" Int :> QueryParam "income" Double :> Get '[JSON] User
 
 type AddressApi = AddressGetOne
 type AddressGetOne = "api" :> "address" :> Capture "id" Int :> Get '[JSON] Address
@@ -89,9 +90,11 @@ If we further want to rewrite our API to a HATEOAS-API, we need to define the se
 This is nothing but the usual servant-server implementation, just that the implementation is not floating around in the source code and instead is bound to a class instance.
 ```haskell
 instance HasHandler UserGetOne where
-  getHandler _ _ = \uId -> return $ User uId 1 1000
+  getHandler _ _ = \uId -> return $ User uId 0 0
 instance HasHandler UserGetAll where
   getHandler _ _ = return [User 1 1 1000, User 2 2 2000, User 42 3 3000]
+instance HasHandler UserGetQuery where
+  getHandler _ _ = \mAddrId mIncome -> return $ User 42 (maybe 0 id mAddrId) (maybe 0 id mIncome)
 instance HasHandler AddressGetOne where
   getHandler _ _ = \aId -> return $ Address aId "Foo St" "BarBaz"
 ```
@@ -103,6 +106,50 @@ apiServer = getResourceServer (Proxy @Handler) (Proxy @(HAL JSON)) (Proxy @Api)
 ```
 
 For now `apiServer` and `layerServer` exist in isolation, but the goal is to merge them into one.
+
+When we now run the `layerServer` and request `GET http://host:port/api/user/query`, we get:
+```json
+{
+    "_embedded": {},
+    "_links": {
+        "addrId": {
+            "href": "/api/user/query{?addrId}",
+            "templated": true,
+            "type": "application/hal+json"
+        },
+        "income": {
+            "href": "/api/user/query{?income}",
+            "templated": true,
+            "type": "application/hal+json"
+        },
+        "self": {
+            "href": "/api/user/query",
+            "type": "application/hal+json"
+        }
+    }
+}
+```
+
+Similar for `userServer` and `GET http://host:port/api/user/42`:
+```json
+{
+    "_embedded": {},
+    "_links": {
+        "address": {
+            "href": "/api/address/0",
+            "type": "application/hal+json"
+        },
+        "self": {
+            "href": "/api/user/42",
+            "title": "The user with the given id",
+            "type": "application/hal+json"
+        }
+    },
+    "addressId": 0,
+    "income": 0,
+    "usrId": 42
+}
+```
 
 The complete example can be found [here](https://github.com/bruderj15/servant-hateoas/blob/main/src/Servant/Hateoas/Example.hs).
 
