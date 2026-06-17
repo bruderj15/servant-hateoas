@@ -19,7 +19,6 @@ import Servant.Hateoas.HasHandler
 import Servant.Hateoas.RelationLink
 import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
-import Control.Monad.IO.Class
 
 -- | Turns an API into a resourceful API by replacing the response type of each endpoint with a resource type.
 type Resourcify :: k -> Type -> k
@@ -54,7 +53,7 @@ type family ResourcifyServer server ct m where
 
 -- | A typeclass providing a function to turn an API into a resourceful API.
 class HasResourceServer api m ct where
-  getResourceServer :: MonadIO m => Proxy m -> Proxy ct -> Proxy api -> ServerT (Resourcify api ct) m
+  getResourceServer :: Monad m => Proxy m -> Proxy ct -> Proxy api -> ServerT (Resourcify api ct) m
 
 instance {-# OVERLAPPING #-} (HasResourceServer a m ct, HasResourceServer b m ct) => HasResourceServer (a :<|> b) m ct where
   getResourceServer m ct _ = getResourceServer m ct (Proxy @a) :<|> getResourceServer m ct (Proxy @b)
@@ -68,7 +67,7 @@ instance {-# OVERLAPPABLE #-}
   , res ~ MkResource ct
   , Resource res
   , ToResource res a
-  , HasHandler api
+  , HasHandler m api
   , HasRelationLink (Resourcify api ct)
   , PolyvariadicComp2 server mkLink (IsFun server)
   , Return2 server mkLink (IsFun server) ~ (m a, RelationLink)
@@ -97,8 +96,7 @@ instance HasResourceServer ('[] :: [Layer]) m ct where
   getResourceServer _ _ _ = emptyServer
 
 instance
-  ( MonadIO m
-  , HasResourceServer ls m ct
+  ( HasResourceServer ls m ct
   , HasResourceServer l m ct
   , BuildLayerLinks (Resourcify l ct) m
   ) => HasResourceServer (l ': ls) m ct where

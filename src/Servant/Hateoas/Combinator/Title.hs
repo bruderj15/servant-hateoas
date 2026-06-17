@@ -22,7 +22,7 @@ instance HasServer api ctx => HasServer (Title desc :> api) ctx where
   route _ = route (Proxy @api)
   hoistServerWithContext _ pc nt s = hoistServerWithContext (Proxy @api) pc nt s
 
-instance HasHandler api => HasHandler (Title desc :> api) where
+instance HasHandler m api => HasHandler m (Title desc :> api) where
   getHandler m _ = getHandler m (Proxy @api)
 
 instance (KnownSymbol title, HasTemplatedLink api) => HasTemplatedLink (Title title :> api) where

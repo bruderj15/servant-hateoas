@@ -31,7 +31,7 @@ instance (HasTemplatedLink api, KnownSymbol sym) => HasTemplatedLink (Sym sym :>
 instance (KnownSymbol sym, HasRelationLink (sym :> api), HasLink api) => HasRelationLink (Sym sym :> api) where
   toRelationLink _ = toRelationLink (Proxy @(sym :> api))
 
-instance (HasHandler api, KnownSymbol sym) => HasHandler (Sym sym :> api) where
+instance (HasHandler m api, KnownSymbol sym) => HasHandler m (Sym sym :> api) where
   getHandler m _ = getHandler m (Proxy @(sym :> api))
 
 -- | A type family that wraps all path segments of kind 'Symbol' in an API with 'Sym'.
