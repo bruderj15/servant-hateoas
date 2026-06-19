@@ -45,8 +45,7 @@ library
                        , Servant.Hateoas.Internal.Sym
                        , Servant.Hateoas.Internal.Polyvariadic
 
-    other-modules:       Servant.Hateoas.Example
-                       , Servant.Hateoas.ContentType.Collection
+    other-modules:       Servant.Hateoas.ContentType.Collection
 
     build-depends:       base                          >= 4.17.2   && < 5
                        , aeson                         >= 2.2.3    && < 2.3
@@ -65,9 +64,17 @@ library
 test-suite servant-hateoas-test
     import:              warnings
     default-language:    GHC2021
+    default-extensions:  DataKinds, TypeFamilies
     type:                exitcode-stdio-1.0
     hs-source-dirs:      test
     main-is:             Main.hs
+    other-modules:       Servant.Hateoas.Example
+                       , Servant.Hateoas.ExampleSpec
     build-depends:
                          base >= 4.17.2 && < 5
                        , servant-hateoas
+                       , aeson
+                       , servant
+                       , servant-server
+                       , hspec
+                       , hspec-wai
