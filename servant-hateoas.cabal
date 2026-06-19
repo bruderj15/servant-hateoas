@@ -74,7 +74,6 @@ test-suite servant-hateoas-test
                          base >= 4.17.2 && < 5
                        , servant-hateoas
                        , aeson
-                       , servant
                        , servant-server
                        , hspec
                        , hspec-wai
