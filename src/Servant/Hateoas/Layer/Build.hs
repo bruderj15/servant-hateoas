@@ -17,7 +17,6 @@ import Servant.Hateoas.Layer.Type
 import Servant.Hateoas.Internal.Sym
 import Servant.Hateoas.Internal.Polyvariadic
 import Data.Kind
-import Control.Monad.IO.Class
 import GHC.TypeLits
 
 -- | Replace the result 'Type' of a function with a new 'Type'.
@@ -29,7 +28,7 @@ type family ReplaceHandler server replacement where
 -- | Create all 'RelationLink's to a 'Layer's 'RelativeChildren'.
 type BuildLayerLinks :: Layer -> (Type -> Type) -> Constraint
 class BuildLayerLinks l m where
-  buildLayerLinks :: MonadIO m => Proxy l -> Proxy m -> ReplaceHandler (ServerT l m) [(String, RelationLink)]
+  buildLayerLinks :: Proxy l -> Proxy m -> ReplaceHandler (ServerT l m) [(String, RelationLink)]
 
 instance
   ( api ~ MkPrefix apiCs verb

@@ -31,16 +31,16 @@ type UserGetQuery  = "api" :> "user" :> "query" :>QueryParam "addrId" Int :> Que
 type AddressApi = AddressGetOne
 type AddressGetOne = "api" :> "address" :> Capture "id" Int :> Get '[JSON] Address
 
-instance HasHandler UserGetOne where
+instance Monad m => HasHandler m UserGetOne where
   getHandler _ _ = \uId -> return $ User uId 0 0
 
-instance HasHandler UserGetAll where
+instance Monad m => HasHandler m UserGetAll where
   getHandler _ _ = return [User 1 1 1000, User 2 2 2000, User 42 3 3000]
 
-instance HasHandler UserGetQuery where
+instance Monad m => HasHandler m UserGetQuery where
   getHandler _ _ = \mAddrId mIncome -> return $ User 42 (maybe 0 id mAddrId) (maybe 0 id mIncome)
 
-instance HasHandler AddressGetOne where
+instance Monad m => HasHandler m AddressGetOne where
   getHandler _ _ = \aId -> return $ Address aId "Foo St" "BarBaz"
 
 -- layerServer :: Server (Resourcify (MkLayers Api) (HAL JSON))
