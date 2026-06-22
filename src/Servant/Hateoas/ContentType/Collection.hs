@@ -65,7 +65,7 @@ instance ToJSON (CollectionResource a) => MimeRender (Collection JSON) (Collecti
   mimeRender _ = encode
 
 collectionLinks :: [(String, RelationLink)] -> Value
-collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["name" .= rel, "value" .= l]) <> xs) mempty
+collectionLinks = Array . Foldable.foldl' (\xs (rel, l) -> pure (object ["rel" .= rel, "href" .= l]) <> xs) mempty
 
 -- TODO: I dont like this at all
 -- CollectionResource a represents [a]
