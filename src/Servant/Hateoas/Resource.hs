@@ -1,11 +1,14 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Servant.Hateoas.Resource
 (
   -- * Resource
   -- ** MkResource
   MkResource,
+  MkCollectionResource,
+  Responsify,
 
   -- ** Base Class
   Resource(..),
@@ -16,7 +19,11 @@ module Servant.Hateoas.Resource
   CollectingResource(..),
 
   -- * Creation
-  ToResource(..)
+  ToResource(..),
+
+  -- * Response-building
+  BuildResource(..),
+  BuildCollection(..)
 ) where
 
 import Servant
@@ -60,3 +67,40 @@ class ToResource res a where
   toResource _ _ = wrap
 
 instance Resource res => ToResource res [a]
+
+-- | Type family computing the collection-Resource-Type holding items of type @a@ for a Content-Type @ct@.
+--
+-- This is the representation a list-response @[a]@ is mapped to, see 'Responsify'.
+type family MkCollectionResource ct (a :: Type) :: Type
+
+-- | Type family computing the response-Resource-Type for a response-value of type @a@ for a Content-Type @ct@.
+--
+-- A list-response @[a]@ is turned into a collection-resource via 'MkCollectionResource' so that every item
+-- carries its own hypermedia-relations as produced by 'ToResource'. Every other response is wrapped via 'MkResource'.
+type Responsify :: Type -> Type -> Type
+type family Responsify ct a where
+  Responsify ct [a] = MkCollectionResource ct a
+  Responsify ct a   = MkResource ct a
+
+-- | Class describing how a collection of values @[a]@ is turned into its collection-resource-representation.
+class BuildCollection ct a where
+  -- | Build the collection-resource from the self-'RelationLink' and the collected items.
+  --
+  -- Every item should be converted via 'toResource' so it carries its own hypermedia-relations.
+  buildCollection :: Proxy ct -> RelationLink -> [a] -> MkCollectionResource ct a
+
+-- | Class describing how a response-value of type @a@ is turned into its response-resource-representation.
+class BuildResource ct a where
+  -- | Build the response-resource from the self-'RelationLink' and the response-value.
+  buildResource :: Proxy ct -> RelationLink -> a -> Responsify ct a
+
+instance {-# OVERLAPPABLE #-}
+  ( Responsify ct a ~ MkResource ct a
+  , Resource (MkResource ct)
+  , ToResource (MkResource ct) a
+  , Accept ct
+  ) => BuildResource ct a where
+  buildResource _ self x = addSelfRel self $ toResource (Proxy @(MkResource ct)) (Proxy @ct) x
+
+instance {-# OVERLAPPING #-} BuildCollection ct a => BuildResource ct [a] where
+  buildResource = buildCollection

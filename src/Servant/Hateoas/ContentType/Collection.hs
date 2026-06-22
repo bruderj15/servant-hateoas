@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Servant.Hateoas.ContentType.Collection
 ( Collection
@@ -12,6 +13,7 @@ import Servant.Hateoas.RelationLink
 import Servant.API.ContentTypes
 import qualified Network.HTTP.Media as M
 import Servant.Links
+import Data.Proxy (Proxy(..))
 import qualified Data.Foldable as Foldable
 import Data.Kind
 import Data.Aeson
@@ -24,6 +26,10 @@ import GHC.Generics
 data Collection (t :: Type)
 
 type instance MkResource (Collection t) = CollectionResource
+
+-- | A 'Collection'-collection is represented directly as a 'CollectionResource' holding one 'CollectionItem'
+-- per element, where every item carries its own hypermedia-relations as produced by 'ToResource'.
+type instance MkCollectionResource (Collection t) a = CollectionResource a
 
 -- | Resource wrapper for 'Collection'.
 data CollectionResource a = CollectionResource
@@ -85,3 +91,8 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (CollectionResource a) where
 
 instance CollectingResource CollectionResource where
   collect i (CollectionResource mHref is ls) = CollectionResource mHref (CollectionItem i mempty : is) ls
+
+instance (ToResource CollectionResource a, Accept (Collection t)) => BuildCollection (Collection t) a where
+  buildCollection _ self xs = (addSelfRel self mempty) { items = fmap mkItem xs }
+    where
+      mkItem x = CollectionItem x (rels (toResource (Proxy @CollectionResource) (Proxy @(Collection t)) x))

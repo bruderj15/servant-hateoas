@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Servant.Hateoas.ContentType.HAL
 (
@@ -29,6 +30,10 @@ import GHC.Generics
 data HAL (t :: Type)
 
 type instance MkResource (HAL t) = HALResource
+
+-- | A HAL-collection is represented as a 'HALResource' whose payload is the list of its item-resources,
+-- so that every item carries its own hypermedia-relations under @_embedded.items@.
+type instance MkCollectionResource (HAL t) a = HALResource [HALResource a]
 
 -- | HAL-resource representation.
 data HALResource a = HALResource
@@ -71,3 +76,6 @@ instance {-# OVERLAPPING #-} ToJSON a => ToJSON (HALResource [a]) where
 
 instance EmbeddingResource HALResource where
   embed e (HALResource r ls es) = HALResource r ls $ fmap Some1 e : es
+
+instance (ToResource HALResource a, Accept (HAL t)) => BuildCollection (HAL t) a where
+  buildCollection _ self xs = addSelfRel self $ wrap $ fmap (toResource (Proxy @HALResource) (Proxy @(HAL t))) xs
