@@ -1,11 +1,14 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Servant.Hateoas.Resource
 (
   -- * Resource
   -- ** MkResource
   MkResource,
+  MkCollectionPayload,
+  ResponsifyPayload,
 
   -- ** Base Class
   Resource(..),
@@ -16,7 +19,11 @@ module Servant.Hateoas.Resource
   CollectingResource(..),
 
   -- * Creation
-  ToResource(..)
+  ToResource(..),
+
+  -- * Response-building
+  BuildResource(..),
+  BuildCollection(..)
 ) where
 
 import Servant
@@ -60,3 +67,36 @@ class ToResource res a where
   toResource _ _ = wrap
 
 instance Resource res => ToResource res [a]
+
+-- | Type family computing the payload a list-response @[a]@ is represented with inside its 'MkResource'
+-- for a Content-Type @ct@.
+type family MkCollectionPayload ct (a :: Type) :: Type
+
+-- | Type family computing the payload a response-value of type @a@ is represented with inside its 'MkResource'.
+type ResponsifyPayload :: Type -> Type -> Type
+type family ResponsifyPayload ct a where
+  ResponsifyPayload ct [a] = MkCollectionPayload ct a
+  ResponsifyPayload ct a   = a
+
+-- | Class describing how a collection of values @[a]@ is turned into its collection-resource-representation.
+class BuildCollection ct a where
+  -- | Build the collection-resource from the collected items.
+  --
+  -- Every item should be converted via 'toResource' so it carries its own hypermedia-relations.
+  buildCollection :: Proxy ct -> [a] -> MkResource ct (MkCollectionPayload ct a)
+
+-- | Class describing how a response-value of type @a@ is turned into its response-resource-representation.
+class BuildResource ct a where
+  -- | Build the response-resource from the response-value.
+  buildResource :: Proxy ct -> a -> MkResource ct (ResponsifyPayload ct a)
+
+instance {-# OVERLAPPABLE #-}
+  ( ResponsifyPayload ct a ~ a
+  , Resource (MkResource ct)
+  , ToResource (MkResource ct) a
+  , Accept ct
+  ) => BuildResource ct a where
+  buildResource _ x = toResource (Proxy @(MkResource ct)) (Proxy @ct) x
+
+instance {-# OVERLAPPING #-} BuildCollection ct a => BuildResource ct [a] where
+  buildResource = buildCollection

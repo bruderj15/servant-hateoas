@@ -26,7 +26,7 @@ type family Resourcify api ct where
   Resourcify EmptyAPI        ct = EmptyAPI
   Resourcify (a :<|> b)      ct = Resourcify a ct :<|> Resourcify b ct
   Resourcify (a :> b)        ct = a :> Resourcify b ct
-  Resourcify (Verb m s _ a)  ct = Verb m s '[ct] (MkResource ct a)
+  Resourcify (Verb m s _ a)  ct = Verb m s '[ct] (MkResource ct (ResponsifyPayload ct a))
   Resourcify ('Layer api cs verb) ct = 'Layer (Resourcify api ct) (Resourcify cs ct) (Resourcify verb ct)
   Resourcify (x:xs)          ct = Resourcify x ct : Resourcify xs ct
   Resourcify a               _  = a
@@ -48,7 +48,7 @@ type family ResourcifyServer server ct m where
   ResourcifyServer EmptyServer ct m = EmptyServer
   ResourcifyServer (a :<|> b)  ct m = ResourcifyServer a ct m :<|> ResourcifyServer b ct m
   ResourcifyServer (a -> b)    ct m = a -> ResourcifyServer b ct m
-  ResourcifyServer (m a)       ct m = m (MkResource ct a)
+  ResourcifyServer (m a)       ct m = m (MkResource ct (ResponsifyPayload ct a))
   ResourcifyServer (f a)       ct m = f (ResourcifyServer a ct m) -- needed for stepping into containers like [Foo]
 
 -- | A typeclass providing a function to turn an API into a resourceful API.
@@ -64,16 +64,15 @@ instance {-# OVERLAPPABLE #-}
   , ServerT (Resourcify api ct) m ~ ResourcifyServer server ct m
   , mkLink ~ MkLink (Resourcify api ct) RelationLink
   , Accept ct
-  , res ~ MkResource ct
-  , Resource res
-  , ToResource res a
+  , Resource (MkResource ct)
+  , BuildResource ct a
   , HasHandler m api
   , HasRelationLink (Resourcify api ct)
   , PolyvariadicComp2 server mkLink (IsFun server)
   , Return2 server mkLink (IsFun server) ~ (m a, RelationLink)
-  , Replace2 server mkLink (m (res a)) (IsFun mkLink) ~ ResourcifyServer server ct m
+  , Replace2 server mkLink (m (MkResource ct (ResponsifyPayload ct a))) (IsFun mkLink) ~ ResourcifyServer server ct m
   ) => HasResourceServer (api :: Type) m ct where
-  getResourceServer m _ api = pcomp2 ((\(ma, self) -> (addSelfRel self . toResource (Proxy @res) (Proxy @ct)) <$> ma)) (getHandler m api) mkSelf
+  getResourceServer m _ api = pcomp2 (\(ma, self) -> addSelfRel self . buildResource (Proxy @ct) <$> ma) (getHandler m api) mkSelf
     where
       mkSelf = toRelationLink (Proxy @(Resourcify api ct))
 
