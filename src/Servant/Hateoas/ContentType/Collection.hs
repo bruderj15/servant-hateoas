@@ -28,7 +28,7 @@ type instance MkResource (Collection t) = CollectionResource
 
 -- | A 'Collection'-collection is represented directly as a 'CollectionResource' holding one 'CollectionItem'
 -- per element, where every item carries its own hypermedia-relations as produced by 'ToResource'.
-type instance MkCollectionResource (Collection t) a = CollectionResource a
+type instance MkCollectionPayload (Collection t) a = a
 
 -- | Resource wrapper for 'Collection'.
 data CollectionResource a = CollectionResource
@@ -92,6 +92,6 @@ instance CollectingResource CollectionResource where
   collect i (CollectionResource mHref is ls) = CollectionResource mHref (CollectionItem i mempty : is) ls
 
 instance (ToResource CollectionResource a, Accept (Collection t)) => BuildCollection (Collection t) a where
-  buildCollection _ self xs = (addSelfRel self mempty) { items = fmap mkItem xs }
+  buildCollection _ xs = mempty { items = fmap mkItem xs }
     where
       mkItem x = CollectionItem x (rels (toResource (Proxy @CollectionResource) (Proxy @(Collection t)) x))

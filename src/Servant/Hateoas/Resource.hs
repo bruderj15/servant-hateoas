@@ -7,8 +7,8 @@ module Servant.Hateoas.Resource
   -- * Resource
   -- ** MkResource
   MkResource,
-  MkCollectionResource,
-  Responsify,
+  MkCollectionPayload,
+  ResponsifyPayload,
 
   -- ** Base Class
   Resource(..),
@@ -68,39 +68,35 @@ class ToResource res a where
 
 instance Resource res => ToResource res [a]
 
--- | Type family computing the collection-Resource-Type holding items of type @a@ for a Content-Type @ct@.
---
--- This is the representation a list-response @[a]@ is mapped to, see 'Responsify'.
-type family MkCollectionResource ct (a :: Type) :: Type
+-- | Type family computing the payload a list-response @[a]@ is represented with inside its 'MkResource'
+-- for a Content-Type @ct@.
+type family MkCollectionPayload ct (a :: Type) :: Type
 
--- | Type family computing the response-Resource-Type for a response-value of type @a@ for a Content-Type @ct@.
---
--- A list-response @[a]@ is turned into a collection-resource via 'MkCollectionResource' so that every item
--- carries its own hypermedia-relations as produced by 'ToResource'. Every other response is wrapped via 'MkResource'.
-type Responsify :: Type -> Type -> Type
-type family Responsify ct a where
-  Responsify ct [a] = MkCollectionResource ct a
-  Responsify ct a   = MkResource ct a
+-- | Type family computing the payload a response-value of type @a@ is represented with inside its 'MkResource'.
+type ResponsifyPayload :: Type -> Type -> Type
+type family ResponsifyPayload ct a where
+  ResponsifyPayload ct [a] = MkCollectionPayload ct a
+  ResponsifyPayload ct a   = a
 
 -- | Class describing how a collection of values @[a]@ is turned into its collection-resource-representation.
 class BuildCollection ct a where
-  -- | Build the collection-resource from the self-'RelationLink' and the collected items.
+  -- | Build the collection-resource from the collected items.
   --
   -- Every item should be converted via 'toResource' so it carries its own hypermedia-relations.
-  buildCollection :: Proxy ct -> RelationLink -> [a] -> MkCollectionResource ct a
+  buildCollection :: Proxy ct -> [a] -> MkResource ct (MkCollectionPayload ct a)
 
 -- | Class describing how a response-value of type @a@ is turned into its response-resource-representation.
 class BuildResource ct a where
-  -- | Build the response-resource from the self-'RelationLink' and the response-value.
-  buildResource :: Proxy ct -> RelationLink -> a -> Responsify ct a
+  -- | Build the response-resource from the response-value.
+  buildResource :: Proxy ct -> a -> MkResource ct (ResponsifyPayload ct a)
 
 instance {-# OVERLAPPABLE #-}
-  ( Responsify ct a ~ MkResource ct a
+  ( ResponsifyPayload ct a ~ a
   , Resource (MkResource ct)
   , ToResource (MkResource ct) a
   , Accept ct
   ) => BuildResource ct a where
-  buildResource _ self x = addSelfRel self $ toResource (Proxy @(MkResource ct)) (Proxy @ct) x
+  buildResource _ x = toResource (Proxy @(MkResource ct)) (Proxy @ct) x
 
 instance {-# OVERLAPPING #-} BuildCollection ct a => BuildResource ct [a] where
   buildResource = buildCollection
