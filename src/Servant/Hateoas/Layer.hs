@@ -47,11 +47,16 @@ type family MkLayers api where
 --
 -- This results in a tree-structure where every path from the root of the API to every node or leaf is unique.
 type family Normalize api where
-  Normalize ((prefix :> a) :<|> (prefix :> b)) = Normalize (prefix :> (Normalize a :<|> Normalize b))
-  Normalize (a :<|> b)                         = Normalize a :<|> Normalize b    -- | TODO: Here we also need to apply 'Normalize' again! How?
-  Normalize ((prefix :> a) :>   (prefix :> b)) = Normalize (prefix :> (Normalize a :>   Normalize b))
+  Normalize (a :<|> b)                         = Combine (Normalize a) (Normalize b)
   Normalize (a :> b)                           = a :> Normalize b
   Normalize a                                  = a
+
+type family Combine a b where
+  Combine (a :<|> b)    c                      = Combine a (Combine b c)
+  Combine (prefix :> a) (prefix :> b)          = prefix :> Combine a b
+  Combine (prefix :> a) ((prefix :> b) :<|> c) = (prefix :> Combine a b) :<|> c
+  Combine a             (b :<|> c)             = b :<|> Combine a c
+  Combine a             b                      = a :<|> b
 
 -- | Creates all intermediate layers of the API and their immediate next layers.
 --
