@@ -4,15 +4,17 @@
 
 module Servant.Hateoas.ExampleSpec (spec) where
 
-import           Data.Type.Equality      ((:~:) (Refl))
-import           Servant                 (Capture, Get, JSON,
-                                          QueryParam, (:<|>), (:>))
-import           Servant.Hateoas         (Title)
-import           Servant.Hateoas.Example (Address, Api, User, apiApp, layerApp)
-import           Servant.Hateoas.Layer   (Normalize)
+import           Data.Type.Equality           ((:~:) (Refl))
+import           Servant                      (Capture, Get, JSON, QueryParam,
+                                               (:<|>), (:>))
+import           Servant.Hateoas              (Title)
+import           Servant.Hateoas.Example      (Address, Api, User, apiApp,
+                                               layerApp)
+import           Servant.Hateoas.Internal.Sym (Sym, Symify)
+import           Servant.Hateoas.Layer
 import           Test.Hspec
 import           Test.Hspec.Wai
-import           Test.Hspec.Wai.Matcher  (bodyEquals)
+import           Test.Hspec.Wai.Matcher       (bodyEquals)
 
 spec :: Spec
 spec = do
@@ -41,3 +43,40 @@ checkNormalize :: Normalize Api :~:
     :<|> "address" :> Capture "id" Int :> Get '[JSON] Address)
   )
 checkNormalize = Refl
+
+-- This is intentionally unused, but it is a compile-time test that the Normalize/Symify type family works as expected.
+checkNormalizeSymify :: Normalize (Symify Api) :~:
+  ( Sym "api"
+    :> ( Sym "user"
+      :> ( Sym "query" :> QueryParam "addrId" Int :> QueryParam "income" Double :> Get '[JSON] User
+        :<|> (Get '[JSON] [User]
+        :<|> Title "The user with the given id" :> Capture "id" Int :> Get '[JSON] User
+        :<|> Capture "id" Int :> Sym "friends" :> Get '[JSON] [User]))
+    :<|> Sym "address" :> Capture "id" Int :> Get '[JSON] Address)
+  )
+checkNormalizeSymify = Refl
+
+-- This is intentionally unused, but it is a compile-time test that the Normalize/Symify type family works as expected.
+checkGoLayers :: GoLayers (Normalize (Symify Api)) '[] :~:
+  '[ 'Layer '[]                                        '[Sym "api"] (Get '[] Intermediate),
+     'Layer '[Sym "api"]                               '[Sym "user"] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user"]                   '[Sym "query"] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user", Sym "query"]      '[QueryParam "addrId" Int] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user", Sym "query"]      '[QueryParam "income" Double] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user", Title "The user with the given id"] '[Capture "id" Int] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user"]                   '[Capture "id" Int] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user", Capture "id" Int] '[Sym "friends"] (Get '[] Intermediate),
+     'Layer '[Sym "api"]                               '[Sym "address"] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "address"]                '[Capture "id" Int] (Get '[] Intermediate)]
+checkGoLayers = Refl
+
+-- This is intentionally unused, but it is a compile-time test that the Normalize/Symify type family works as expected.
+checkMergeLayers :: MergeLayers (GoLayers (Normalize (Symify Api)) '[]) '[] :~:
+  '[ 'Layer '[Sym "api", Sym "address"]                '[Capture "id" Int] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user", Capture "id" Int] '[Sym "friends"] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user", Title "The user with the given id"] '[Capture "id" Int] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user", Sym "query"]      '[QueryParam "addrId" Int, QueryParam "income" Double] (Get '[] Intermediate),
+     'Layer '[Sym "api", Sym "user"]                   '[Sym "query", Capture "id" Int] (Get '[] Intermediate),
+     'Layer '[Sym "api"]                               '[Sym "user", Sym "address"] (Get '[] Intermediate),
+     'Layer '[]                                        '[Sym "api"] (Get '[] Intermediate)]
+checkMergeLayers = Refl
