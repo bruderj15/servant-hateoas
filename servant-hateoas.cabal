@@ -70,6 +70,7 @@ test-suite servant-hateoas-test
     main-is:             Main.hs
     other-modules:       Servant.Hateoas.Example
                        , Servant.Hateoas.ExampleSpec
+    ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
     build-depends:
                          base >= 4.17.2 && < 5
                        , servant-hateoas
