@@ -55,7 +55,10 @@ renderHalLink l = object $
     <> maybe mempty (\t -> ["title" .= t]) (_title l)
 
 instance {-# OVERLAPPABLE #-} ToJSON a => ToJSON (HALResource a) where
-  toJSON (HALResource res ls es) = Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)
+  toJSON (HALResource res ls es) = case (toJSON res, ls, es) of
+    -- This is such a dirty hack - but still the easiest way to embed a collection of resources.
+    (Array arr, [], []) -> Array arr
+    _ -> Object $ (singleton "_links" ls') <> (singleton "_embedded" es') <> (case toJSON res of Object kvm -> kvm ; _ -> mempty)
     where
       ls' = object [fromString rel .= renderHalLink l | (rel, l) <- ls]
       es' = object [fromString name .= toJSON e | (name, (Some1 e)) <- es]
